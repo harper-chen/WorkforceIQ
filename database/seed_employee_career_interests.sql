@@ -8,9 +8,8 @@ PRAGMA foreign_keys = ON;
 --
 -- visibility_level:
 --   private           = visible only to the employee
---   hr_only           = visible to the employee and HR
---   opening_managers  = visible to the employee, HR,
---                       and managers responsible for openings
+--   opening_managers  = visible to the employee and
+--                       managers responsible for openings
 --                       for the exact target role
 --
 -- No explicit BEGIN / COMMIT is used to avoid
