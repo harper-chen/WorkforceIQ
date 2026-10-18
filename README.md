@@ -2,6 +2,8 @@
 
 English | [繁體中文](README.zh-TW.md)
 
+[**Live Demo**](https://workforceiq-demo.streamlit.app/)
+
 **WorkforceIQ is a human-centered workforce decision-support system that connects employee skills, career interests, internal learning resources, role requirements, and future workforce demand.**
 
 It is designed to help three groups answer different but connected questions:

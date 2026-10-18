@@ -2,6 +2,8 @@
 
 [English](README.md) | 繁體中文
 
+[**Live Demo**](https://workforceiq-demo.streamlit.app/)
+
 **WorkforceIQ 是一個以人為中心的 workforce decision-support system，整合員工技能、職涯意向、內部學習資源、職務需求與未來人力需求。**
 
 它主要協助三種角色回答彼此相關、但不同層次的問題：
