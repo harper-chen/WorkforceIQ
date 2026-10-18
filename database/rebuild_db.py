@@ -13,6 +13,7 @@ Stop the Streamlit app first so the .db file is not in use.
 """
 
 import argparse
+import os
 import shutil
 import sqlite3
 import sys
@@ -255,6 +256,11 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="build and check in a temp file only")
     parser.add_argument("--keep-interests", action="store_true",
                         help="carry saved career interests over from the existing DB")
+    parser.add_argument(
+        "--no-backup",
+        action="store_true",
+        help="replace the database without creating a backup (used by the public demo reset)",
+    )
     args = parser.parse_args()
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -277,14 +283,29 @@ def main():
             print("\nDry run finished. Nothing was changed.")
             return
 
-        if DB_PATH.exists():
+        if DB_PATH.exists() and not args.no_backup:
             backup = DB_PATH.with_name(
                 f"workforceiq_backup_{datetime.now():%Y%m%d_%H%M%S}.db"
             )
             shutil.copy2(DB_PATH, backup)
             print(f"\nBacked up old database -> {backup.name}")
 
-        shutil.copy2(new_db, DB_PATH)
+        # Copy to a unique file in the database directory, then atomically
+        # replace the live path. This avoids exposing a partially copied
+        # SQLite file to another demo session during a reset.
+        fd, staging_name = tempfile.mkstemp(
+            prefix=".workforceiq_rebuild_",
+            suffix=".db",
+            dir=DB_DIR,
+        )
+        os.close(fd)
+        staging = Path(staging_name)
+        try:
+            shutil.copy2(new_db, staging)
+            staging.replace(DB_PATH)
+        finally:
+            staging.unlink(missing_ok=True)
+
         print(f"Replaced {DB_PATH}")
 
 

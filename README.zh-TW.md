@@ -41,12 +41,14 @@ WorkforceIQ 將這些資訊整合到同一個 decision-support workflow 中。
 
 ## Demo Scenario
 
-為了讓 prototype 有一致、容易理解的 walkthrough，可以使用以下情境：
+若要完整體驗 prototype，建議依照以下流程：
 
-- **River Hsu** — Business Analyst，正在探索轉往 Systems Analyst
-- **Riley Chang** — 負責 Systems Analyst opening 的 Manager
+1. **Employee：** 先以 **River Hsu — Business Analyst** 進入 **My Skills**，查看目前已記錄的 skill profile。
+2. 進入 **Career Exploration**，選擇 **Systems Analyst**，查看 Skill Match、skill gaps 與 learning options。
+3. 切換到 **Manager**，選擇 **Riley Chang**，查看 open 的 **Systems Analyst** requisition，以及 River 的 internal readiness。
+4. 最後進入 **HR / Workforce Planning**，查看 Systems Analyst 如何出現在未來 workforce demand 與 capability-gap planning 中。
 
-這組情境把 Employee 的 career-exploration flow 與 Manager 的 internal-staffing flow 串在一起，方便從頭到尾檢視整個 prototype。
+這條 walkthrough 將 Employee、Manager 與 HR 三個視角串在同一個 workforce scenario 中。
 
 ## What the System Supports
 
@@ -351,7 +353,9 @@ WorkforceIQ/
 
 產生後的 SQLite database 不直接 commit 到 repository。
 
-完整 demo database 可以由 schema 與 seed files 重建：
+如果 `database/workforceiq.db` 不存在，application 會自動從已 commit 的 schema 與 seed files 建立一份新的 demo database。這讓全新的 portfolio deployment 不需要把可寫入的 SQLite database commit 到 repository，也能直接啟動。
+
+Database 也可以手動重建：
 
 ```bash
 python database/rebuild_db.py
@@ -369,7 +373,7 @@ python database/rebuild_db.py --dry-run
 python database/rebuild_db.py --keep-interests
 ```
 
-如果已有既有 database，正式 rebuild 前會先建立 backup。
+如果已有既有 database，正式 rebuild 前會先建立 backup。Public demo 另外提供 **Demo controls → Reset demo data**，可以把 career interests 與 visibility settings 恢復成 seeded demo state，而且不會另外建立 backup。
 
 Rebuild script 也會檢查：
 

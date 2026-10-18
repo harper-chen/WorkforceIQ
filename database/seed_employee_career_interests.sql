@@ -209,7 +209,7 @@ VALUES
 (79,
  (SELECT role_id FROM roles WHERE role_name = 'Systems Analyst'),
  '2026-05-31',
- 'private'),
+ 'opening_managers'),
 
 (79,
  (SELECT role_id FROM roles WHERE role_name = 'BI Analyst'),

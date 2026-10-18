@@ -43,10 +43,12 @@ WorkforceIQ connects these pieces in one decision-support workflow.
 
 For a consistent walkthrough of the prototype:
 
-- **River Hsu** — Business Analyst exploring a move into Systems Analyst
-- **Riley Chang** — Manager responsible for the Systems Analyst opening
+1. **Employee:** Start with **River Hsu — Business Analyst** in **My Skills** to review the skills currently recorded in his profile.
+2. Open **Career Exploration** and select **Systems Analyst** to review his Skill Match, skill gaps, and learning options.
+3. Switch to **Manager** and select **Riley Chang** to review the open **Systems Analyst** requisition and River's internal readiness.
+4. Continue to **HR / Workforce Planning** to see how the same role appears in future workforce demand and capability-gap planning.
 
-This scenario connects the employee career-exploration flow with the manager internal-staffing flow and provides a simple path for reviewing the prototype end to end.
+This walkthrough connects the employee, manager, and HR perspectives around the same workforce scenario.
 
 ## What the System Supports
 
@@ -345,7 +347,9 @@ WorkforceIQ/
 
 The generated SQLite database is not committed to the repository.
 
-Instead, the full demo database can be rebuilt from the schema and seed files:
+If `database/workforceiq.db` is missing, the application automatically bootstraps a fresh demo database from the committed schema and seed files. This allows a fresh portfolio deployment to start without committing a writable SQLite database.
+
+The database can also be rebuilt manually:
 
 ```bash
 python database/rebuild_db.py
@@ -363,7 +367,7 @@ To rebuild while preserving existing saved career interests:
 python database/rebuild_db.py --keep-interests
 ```
 
-If an existing database is present, the rebuild process creates a backup before replacing it.
+If an existing database is present, the rebuild process creates a backup before replacing it. The public demo also includes **Demo controls → Reset demo data**, which restores the seeded career interests and visibility settings without creating a backup.
 
 The rebuild script also checks:
 

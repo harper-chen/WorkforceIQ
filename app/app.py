@@ -3,6 +3,7 @@ import streamlit as st
 from db import (
     get_employee_list,
     get_manager_list,
+    reset_demo_database,
 )
 
 from views.my_skills import (
@@ -43,9 +44,26 @@ st.caption(
 )
 
 
+DEMO_EMPLOYEE_NAME = "River Hsu"
+DEMO_MANAGER_NAME = "Riley Chang"
+
+
 # =========================================================
 # Workspace
 # =========================================================
+
+st.sidebar.markdown(
+    """
+<div style="
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+">
+    Workspace
+</div>
+""",
+    unsafe_allow_html=True,
+)
 
 workspace = st.sidebar.radio(
     "Workspace",
@@ -54,6 +72,31 @@ workspace = st.sidebar.radio(
         "Manager",
         "HR / Workforce Planning",
     ],
+    label_visibility="collapsed",
+)
+
+st.sidebar.markdown(
+    """
+<div style="
+    margin-top: 1rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #8B95A7;
+">
+    Suggested demo
+</div>
+
+<div style="
+    font-size: 0.80rem;
+    line-height: 1.55;
+    color: #9AA3B2;
+">
+    Employee: River Hsu → Career Exploration → Systems Analyst<br>
+    Manager: Riley Chang → Systems Analyst opening
+</div>
+""",
+    unsafe_allow_html=True,
 )
 
 
@@ -83,16 +126,22 @@ if workspace == "Employee":
         employee_options.values()
     )
 
-    # Keep the last selected employee across workspace changes.
+    demo_employee_id = next(
+        (
+            int(row.employee_id)
+            for row in employees.itertuples()
+            if row.employee_name == DEMO_EMPLOYEE_NAME
+        ),
+        employee_options[employee_labels[0]],
+    )
+
+    # Default first-time visitors to the suggested demo employee,
+    # while preserving any later manual selection.
     if (
         "employee_id" not in st.session_state
         or st.session_state["employee_id"] not in employee_ids
     ):
-        st.session_state[
-            "employee_id"
-        ] = employee_options[
-            employee_labels[0]
-        ]
+        st.session_state["employee_id"] = demo_employee_id
 
     current_employee_label = next(
         label
@@ -122,6 +171,9 @@ if workspace == "Employee":
         "employee_id"
     ] = selected_employee_id
 
+    if "employee_page" not in st.session_state:
+        st.session_state["employee_page"] = "My Skills"
+
     page = st.sidebar.radio(
         "Employee",
         [
@@ -129,6 +181,7 @@ if workspace == "Employee":
             "Career Exploration",
             "Learning Catalog",
         ],
+        key="employee_page",
     )
 
     if page == "My Skills":
@@ -158,13 +211,21 @@ elif workspace == "Manager":
         )
 
     else:
-        manager_options = {
-            (
+        manager_options = {}
+
+        for row in managers.itertuples():
+            open_count = int(row.open_requisition_count)
+            requisition_word = (
+                "requisition"
+                if open_count == 1
+                else "requisitions"
+            )
+
+            label = (
                 f"{row.manager_name} — "
-                f"{row.current_role}"
-            ): row.manager_id
-            for row in managers.itertuples()
-        }
+                f"{open_count} open {requisition_word}"
+            )
+            manager_options[label] = row.manager_id
 
         manager_labels = list(
             manager_options.keys()
@@ -174,16 +235,22 @@ elif workspace == "Manager":
             manager_options.values()
         )
 
-        # Keep the last selected manager across workspace changes.
+        demo_manager_id = next(
+            (
+                int(row.manager_id)
+                for row in managers.itertuples()
+                if row.manager_name == DEMO_MANAGER_NAME
+            ),
+            manager_options[manager_labels[0]],
+        )
+
+        # Default first-time visitors to the suggested demo manager,
+        # while preserving any later manual selection.
         if (
             "manager_id" not in st.session_state
             or st.session_state["manager_id"] not in manager_ids
         ):
-            st.session_state[
-                "manager_id"
-            ] = manager_options[
-                manager_labels[0]
-            ]
+            st.session_state["manager_id"] = demo_manager_id
 
         current_manager_label = next(
             label
@@ -223,3 +290,37 @@ elif workspace == "Manager":
 elif workspace == "HR / Workforce Planning":
 
     render_hr_workforce_planning()
+
+# =========================================================
+# Demo Controls
+# =========================================================
+
+def _reset_demo():
+    """Restore seeded demo data and clear DB-backed UI state."""
+    reset_demo_database()
+
+    for key in list(st.session_state.keys()):
+        if (
+            key.startswith("career_saved_state_")
+            or key.startswith("career_visibility_db_")
+            or key.startswith("career_visibility_select_")
+        ):
+            st.session_state.pop(key, None)
+
+    st.session_state["demo_reset_notice"] = True
+
+
+with st.sidebar.expander("Demo controls"):
+    st.caption(
+        "Restore saved career interests and visibility settings "
+        "to the seeded demo state."
+    )
+    st.button(
+        "Reset demo data",
+        on_click=_reset_demo,
+        use_container_width=True,
+    )
+
+if st.session_state.pop("demo_reset_notice", False):
+    st.sidebar.success("Demo data restored.")
+

@@ -1,9 +1,49 @@
 from pathlib import Path
 from contextlib import contextmanager
 import sqlite3
+import subprocess
+import sys
 import pandas as pd
 
-DB_PATH = Path(__file__).resolve().parents[1] / "database" / "workforceiq.db"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DB_PATH = PROJECT_ROOT / "database" / "workforceiq.db"
+REBUILD_SCRIPT = PROJECT_ROOT / "database" / "rebuild_db.py"
+
+
+def _run_database_rebuild(*extra_args: str) -> None:
+    """Run the reproducible database rebuild and surface useful errors."""
+    command = [
+        sys.executable,
+        str(REBUILD_SCRIPT),
+        *extra_args,
+    ]
+
+    result = subprocess.run(
+        command,
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+    )
+
+    if result.returncode != 0 or not DB_PATH.exists():
+        details = (result.stderr or result.stdout).strip()
+        raise RuntimeError(
+            "WorkforceIQ could not create the demo database."
+            + (f"\n\n{details}" if details else "")
+        )
+
+
+def ensure_database() -> None:
+    """Create the seeded demo database automatically when it is missing."""
+    if DB_PATH.exists():
+        return
+
+    _run_database_rebuild("--no-backup")
+
+
+def reset_demo_database() -> None:
+    """Restore the shared demo database to its seeded baseline."""
+    _run_database_rebuild("--no-backup")
 
 
 @contextmanager
@@ -14,11 +54,7 @@ def get_connection():
     Successful writes are committed, exceptions are rolled back,
     and the connection is always closed after use.
     """
-    if not DB_PATH.exists():
-        raise FileNotFoundError(
-            f"Database not found at: {DB_PATH}\n"
-            "Expected project structure: WorkforceIQ/database/workforceiq.db"
-        )
+    ensure_database()
 
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -1269,10 +1305,16 @@ def get_manager_list():
     "Preview as manager" control.
     """
     query = """
-    SELECT DISTINCT
+    SELECT
         e.employee_id AS manager_id,
         e.employee_name AS manager_name,
-        r.role_name AS current_role
+        r.role_name AS current_role,
+        SUM(
+            CASE
+                WHEN jo.status = 'open' THEN 1
+                ELSE 0
+            END
+        ) AS open_requisition_count
 
     FROM job_openings jo
 
@@ -1281,6 +1323,13 @@ def get_manager_list():
 
     JOIN roles r
         ON r.role_id = e.current_role_id
+
+    WHERE jo.status IN ('open', 'paused')
+
+    GROUP BY
+        e.employee_id,
+        e.employee_name,
+        r.role_name
 
     ORDER BY
         e.employee_name ASC;
