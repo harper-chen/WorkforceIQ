@@ -1,13 +1,33 @@
 from pathlib import Path
 from contextlib import contextmanager
+import shutil
 import sqlite3
 import subprocess
 import sys
+import tempfile
+import threading
+import time
+import uuid
+
 import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+# The seeded baseline. It is built from schema + seed files, then only ever COPIED:
+# in the running app nobody writes to it, so it always holds the clean demo data.
 DB_PATH = PROJECT_ROOT / "database" / "workforceiq.db"
 REBUILD_SCRIPT = PROJECT_ROOT / "database" / "rebuild_db.py"
+
+# Each visitor session works on its own private copy of the baseline, so one visitor's
+# saved career interests or visibility changes never show up for anyone else.
+SESSION_DB_DIR = Path(tempfile.gettempdir()) / "workforceiq_sessions"
+SESSION_DB_KEY = "_workforceiq_session_db"
+SESSION_DB_MAX_AGE_SECONDS = 24 * 60 * 60
+SESSION_DB_MAX_FILES = 200
+
+# One Streamlit server process serves every session, so a process-wide lock is enough
+# to keep "build the baseline" and "copy the baseline" from overlapping.
+_db_lock = threading.RLock()
 
 
 def _run_database_rebuild(*extra_args: str) -> None:
@@ -34,16 +54,115 @@ def _run_database_rebuild(*extra_args: str) -> None:
 
 
 def ensure_database() -> None:
-    """Create the seeded demo database automatically when it is missing."""
-    if DB_PATH.exists():
+    """Create the seeded baseline database automatically when it is missing."""
+    with _db_lock:
+        if DB_PATH.exists():
+            return
+
+        _run_database_rebuild("--no-backup")
+
+
+def _session_state():
+    """
+    Return Streamlit's per-visitor session_state, or None when the code runs
+    outside a Streamlit session (unit tests, command-line scripts).
+    """
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+
+        try:
+            context = get_script_run_ctx(suppress_warning=True)
+        except TypeError:  # older Streamlit without the keyword
+            context = get_script_run_ctx()
+
+        if context is None:
+            return None
+
+        import streamlit as st
+
+        return st.session_state
+    except Exception:
+        return None
+
+
+def _purge_stale_session_databases(now=None) -> None:
+    """Best-effort cleanup: drop session copies older than a day, then cap the total."""
+    now = time.time() if now is None else now
+
+    try:
+        files = sorted(
+            SESSION_DB_DIR.glob("session_*.db"),
+            key=lambda path: path.stat().st_mtime,
+        )
+    except OSError:
         return
 
-    _run_database_rebuild("--no-backup")
+    keep = []
+    for path in files:
+        try:
+            if now - path.stat().st_mtime > SESSION_DB_MAX_AGE_SECONDS:
+                path.unlink()
+            else:
+                keep.append(path)
+        except OSError:
+            continue
+
+    # The newest copies belong to the visitors who are most likely still here.
+    for path in keep[: max(len(keep) - SESSION_DB_MAX_FILES, 0)]:
+        try:
+            path.unlink()
+        except OSError:
+            continue
+
+
+def active_db_path() -> Path:
+    """
+    Database file for the current caller.
+
+    Inside a Streamlit session this is that visitor's private copy (created on first use).
+    Outside a session it is the shared baseline file, which keeps scripts and tests simple.
+    """
+    state = _session_state()
+
+    if state is None:
+        return DB_PATH
+
+    with _db_lock:
+        ensure_database()
+
+        existing = state.get(SESSION_DB_KEY)
+        if existing and Path(existing).exists():
+            # Touch it so an active visitor's copy is not mistaken for a stale one.
+            try:
+                Path(existing).touch()
+            except OSError:
+                pass
+            return Path(existing)
+
+        _purge_stale_session_databases()
+        SESSION_DB_DIR.mkdir(parents=True, exist_ok=True)
+
+        new_path = SESSION_DB_DIR / f"session_{uuid.uuid4().hex}.db"
+        shutil.copyfile(DB_PATH, new_path)
+        state[SESSION_DB_KEY] = str(new_path)
+
+        return new_path
 
 
 def reset_demo_database() -> None:
-    """Restore the shared demo database to its seeded baseline."""
-    _run_database_rebuild("--no-backup")
+    """
+    Restore the seeded demo data.
+
+    In a Streamlit session this affects only the current visitor's private copy.
+    Outside a session it rebuilds the shared baseline from the schema and seed files.
+    """
+    with _db_lock:
+        path = active_db_path()
+
+        if path == DB_PATH:
+            _run_database_rebuild("--no-backup")
+        else:
+            shutil.copyfile(DB_PATH, path)
 
 
 @contextmanager
@@ -56,7 +175,7 @@ def get_connection():
     """
     ensure_database()
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(active_db_path())
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
 

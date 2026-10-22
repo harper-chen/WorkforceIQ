@@ -4,6 +4,8 @@
 
 [**Live Demo**](https://workforceiq-demo.streamlit.app/)
 
+[![Tests](https://github.com/harper-chen/WorkforceIQ/actions/workflows/tests.yml/badge.svg)](https://github.com/harper-chen/WorkforceIQ/actions/workflows/tests.yml)
+
 **WorkforceIQ 是一個以人為中心的 workforce decision-support system，整合員工技能、職涯意向、內部學習資源、職務需求與未來人力需求。**
 
 它主要協助三種角色回答彼此相關、但不同層次的問題：
@@ -22,6 +24,7 @@ WorkforceIQ 目前使用 **synthetic enterprise workforce data**，以 Python、
 pip install -r requirements.txt
 python database/rebuild_db.py      # 從 schema 與 seed files 建立 demo database
 streamlit run app/app.py
+python -m unittest discover -s tests   # 選用：執行自動化測試
 ```
 
 ## Why WorkforceIQ?
@@ -40,6 +43,16 @@ streamlit run app/app.py
 例如，只知道某個 role 未來需要增加 headcount 並不夠。Manager 還需要知道是否有感興趣的內部員工已經接近 role requirements；HR 也需要知道現有 learning catalog 是否真的能培養未來缺口職務所需要的能力。
 
 WorkforceIQ 將這些資訊整合到同一個 decision-support workflow 中。
+
+### 這個想法從哪裡來
+
+這個想法來自我在一家大型電子公司實習時觀察到的現象：該公司有很完善的訓練課程，員工也很多；但員工透過課程提升能力後，往往只有自己知道，對職涯發展幫助不大。公司在員工訓練上投入很多資源，員工卻常常不知道修完課之後可以往哪些職務發展。Learning catalog 回答的是「這門課會教我什麼」，卻沒有回答「這門課能讓我準備好哪個職務，我現在離它還差多少」。
+
+這同時也是人力配置的問題。當 training、skills、career interests 與 job openings 沒有連在一起時，組織可能持續向外招募，即使內部其實有員工經過針對性的培養就能勝任。清楚的 internal career pathways 不只是員工福利，也可以是 workforce strategy 的一部分。
+
+把這些資訊連起來之後，會出現第二個問題：manager 是否應該看到所有員工的 career interests？一位私下探索其他職務的員工，如果擔心被主管看到，可能就不敢使用這類 career-planning 工具。因此 career interests **預設為 private**；只有在員工主動公開，**而且**該 interest 與該 manager 名下某個 open requisition 的 role 完全相符時，manager 才看得到。
+
+所以 WorkforceIQ 同時嘗試三件事：讓員工看見 learning 如何通往職務；讓 manager 與 HR 在預設外部招募之前先考慮內部人才；並且只揭露完成決策所需的最少資訊。
 
 ## Demo Scenario
 
@@ -88,7 +101,9 @@ Career interest 預設為 `Private`。員工可以主動選擇 `Visible to openi
 
 ### Manager：Internal Staffing Decision Support
 
-Manager workspace 不會自動排名或選出候選人。
+Manager workspace 不會替 manager 選出候選人，也不會產生最終排名。
+
+可見的候選人會依目前的 Skill Match 由高到低列出（相同時，依 priority gaps 較少、再依 significant gaps 較少排序），目的只是方便閱讀。這個順序不是建議：真正有意義的是 readiness label 與 staffing route，最終決定仍由 manager 負責。
 
 它主要協助回答：
 
@@ -324,21 +339,58 @@ Career interest 要出現在 manager candidate list 中，必須同時符合：
 - Training records
 - Future workforce demand
 
-專案結構：
+### Data model
+
+Schema 共有 14 張表。以下 overview 由 `database/schema.sql` 自動產生：
+
+```mermaid
+erDiagram
+    departments ||--o{ roles : "department_id"
+    roles ||--o{ employees : "current_role_id"
+    employees |o--o{ employees : "manager_id"
+    employees ||--o{ employee_skills : "employee_id"
+    skills ||--o{ employee_skills : "skill_id"
+    roles ||--o{ role_skills : "role_id"
+    skills ||--o{ role_skills : "skill_id"
+    employees ||--o{ employee_career_interests : "employee_id"
+    roles ||--o{ employee_career_interests : "target_role_id"
+    roles ||--o{ career_paths : "source_role_id"
+    roles ||--o{ career_paths : "target_role_id"
+    roles ||--o{ job_openings : "role_id"
+    employees ||--o{ job_openings : "hiring_manager_id"
+    training_programs ||--o{ training_skills : "training_id"
+    skills ||--o{ training_skills : "skill_id"
+    training_programs ||--o{ training_prerequisites : "training_id"
+    skills ||--o{ training_prerequisites : "skill_id"
+    employees ||--o{ employee_training_records : "employee_id"
+    training_programs ||--o{ employee_training_records : "training_id"
+    roles ||--o{ future_demand : "role_id"
+```
+
+各區域含欄位的詳細圖在 [`docs/er-diagram.md`](docs/er-diagram.md)；把 [`docs/schema.dbml`](docs/schema.dbml) 貼到 [dbdiagram.io](https://dbdiagram.io) 可以得到較精緻的圖片。兩者都可用 `python database/generate_er_diagram.py` 重新產生；若與 schema 不一致，測試會失敗。
+
+### 專案結構
 
 ```text
 WorkforceIQ/
 ├── app/
 │   ├── app.py
-│   ├── db.py
+│   ├── db.py              # SQL queries and per-visitor database copies
+│   ├── readiness.py       # evidence coverage, internal readiness, staffing route
+│   ├── planning.py        # workforce gap and capability-coverage calculations
 │   └── views/
 │
 ├── database/
 │   ├── schema.sql
 │   ├── seed_*.sql
-│   └── rebuild_db.py
+│   ├── rebuild_db.py
+│   └── generate_er_diagram.py
+│
+├── tests/
 │
 ├── docs/
+│   ├── er-diagram.md
+│   ├── schema.dbml
 │   └── images/
 │       ├── employee-career-overview.png
 │       ├── employee-career-detail.png
@@ -347,6 +399,7 @@ WorkforceIQ/
 │       ├── hr-workforce-demand.png
 │       └── hr-capability-gaps.png
 │
+├── .github/workflows/tests.yml
 ├── SQL/
 └── requirements.txt
 ```
@@ -375,7 +428,7 @@ python database/rebuild_db.py --dry-run
 python database/rebuild_db.py --keep-interests
 ```
 
-如果已有既有 database，正式 rebuild 前會先建立 backup。Public demo 另外提供 **Demo controls → Reset demo data**，可以把 career interests 與 visibility settings 恢復成 seeded demo state，而且不會另外建立 backup。
+如果已有既有 database，正式 rebuild 前會先建立 backup。
 
 Rebuild script 也會檢查：
 
@@ -383,6 +436,12 @@ Rebuild script 也會檢查：
 - Foreign-key consistency
 - Key schema constraints
 - Seed-data consistency
+
+### 每位訪客一份私人資料庫
+
+`database/workforceiq.db` 是唯讀的 baseline：執行中的 app 不會寫入它。每位訪客的 session 都使用自己的暫時副本，因此在某個瀏覽器分頁儲存 career interest 或更改 visibility，不會影響其他任何人。
+
+**Demo controls → Reset demo data** 只會把該訪客自己副本中的 career interests 與 visibility settings 恢復成 seeded demo state。副本存放在系統暫存資料夾，閒置約一天後會自動清除。
 
 ## Why Rule-Based Instead of Machine Learning?
 
@@ -404,6 +463,26 @@ WorkforceIQ 目前使用 rule-based decision logic，而不是 predictive machin
 
 如果未來能取得足夠、且經過適當 governance 的 real historical data，才有條件進一步比較 rule-based、statistical 與 machine-learning approaches。
 
+## Testing
+
+決策邏輯由自動化測試涵蓋，每次 push 都會執行（見頁首徽章）：
+
+```bash
+python -m unittest discover -s tests
+```
+
+| 範圍 | 檢查內容 |
+|---|---|
+| Skill Match 與 gaps | 加權 match、每項 skill 最高 100% 的上限、gap 與 priority gap 的計數，以及「沒有紀錄」計 0 分但不被當成 gap。以一個答案可手算驗證的小型資料庫檢查。 |
+| Manager visibility | 只有員工主動公開、且 target role 與「該 manager 名下 open requisition」完全相同的 interest 才會顯示。Private interest、其他 role、paused opening 與 hiring manager 本人都被排除。 |
+| Readiness 與 staffing route | 每個門檻的邊界值（70% evidence coverage、80% 與 60% Skill Match、priority 與 significant gap 上限）以及每一種 staffing route。 |
+| Workforce planning | `max(planned − current, 0)`，以及內部 catalog 無法涵蓋哪些 required skills。 |
+| 每位訪客的資料庫 | 訪客各有獨立副本、儲存與重設互不影響、過期副本會被清除。 |
+| Seeded demo | Database 能完整重建且所有 integrity checks 通過，而且 README walkthrough（River Hsu → Riley Chang → `Internal Mobility` / `Train First`）仍然成立。 |
+| 文件 | ER diagrams 與 `schema.sql` 一致。 |
+
+Streamlit 畫面本身沒有自動化測試，目前以 manual QA 驗證。
+
 ## Limitations
 
 WorkforceIQ 目前仍是一個 prototype。
@@ -414,7 +493,8 @@ WorkforceIQ 目前仍是一個 prototype。
 - **Heuristic thresholds：** Readiness thresholds 尚未透過真實 mobility outcomes 驗證或 calibration。
 - **No production authentication or RBAC：** 不同 workspace 的 visibility 目前由 query logic、application logic 與 UI flow 控制，而非 production-grade access control。
 - **No outcome validation：** 目前沒有真實 mobility、hiring 或 performance labels，因此無法驗證 staffing rules 的 predictive validity。
-- **No automated application test suite：** Database rebuild 包含 integrity 與 consistency checks，但 application-level behavior 目前主要透過 manual QA 驗證。
+- **測試涵蓋邏輯，不含介面：** 決策規則、visibility rules、每位訪客的資料庫與 database rebuild 都有自動化測試（見 [Testing](#testing)）。Streamlit 畫面目前以 manual QA 驗證。
+- **Demo 資料是暫時的：** 每位訪客的私人副本綁定在瀏覽器 session。重新整理網頁，或主機服務重啟 app，都會從 seeded data 重新開始一份新的副本，效果等同自動 Reset。
 - **Prototype deployment：** 目前系統主要作為 local / portfolio prototype，而不是 production HR platform。
 
 ## Project Scope

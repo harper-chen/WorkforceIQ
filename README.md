@@ -4,6 +4,8 @@ English | [繁體中文](README.zh-TW.md)
 
 [**Live Demo**](https://workforceiq-demo.streamlit.app/)
 
+[![Tests](https://github.com/harper-chen/WorkforceIQ/actions/workflows/tests.yml/badge.svg)](https://github.com/harper-chen/WorkforceIQ/actions/workflows/tests.yml)
+
 **WorkforceIQ is a human-centered workforce decision-support system that connects employee skills, career interests, internal learning resources, role requirements, and future workforce demand.**
 
 It is designed to help three groups answer different but connected questions:
@@ -22,6 +24,7 @@ WorkforceIQ currently runs on **synthetic enterprise workforce data** and is bui
 pip install -r requirements.txt
 python database/rebuild_db.py      # build the demo database from schema + seed files
 streamlit run app/app.py
+python -m unittest discover -s tests   # optional: run the automated tests
 ```
 
 ## Why WorkforceIQ?
@@ -40,6 +43,16 @@ Each source is useful on its own, but many workforce decisions depend on how the
 For example, knowing that a role will need more headcount is only part of the problem. A manager may also want to know whether interested internal employees are close enough to the role requirements, while HR may want to know whether the current learning catalog can actually build the capabilities those future roles require.
 
 WorkforceIQ connects these pieces in one decision-support workflow.
+
+### Where the idea came from
+
+The idea comes from something I noticed during an internship at a large electronics company with a well-developed training program and a large workforce: employees improve their skills through courses, but the improvement is mostly known only to themselves and does little for their career development. Companies invest heavily in training, yet employees often cannot see where completing a course could take them. A learning catalog answers "what will this course teach me?" but not "which role does this prepare me for, and how far am I from it?"
+
+It is also a staffing question. When training, skills, career interests and job openings are not connected, an organization may keep recruiting externally even though an internal employee could grow into the role with targeted development. Clear internal career pathways are not only an employee benefit; they can be part of a workforce strategy.
+
+Connecting this information raises a second problem: should managers see every employee's career interests? An employee exploring another role privately may stop using a career-planning tool if their manager can see it. So career interests are **private by default**, and a manager sees one only when the employee opts in **and** it matches the exact role of an open requisition that manager owns.
+
+WorkforceIQ therefore tries to hold three things together: help employees see how learning leads to roles, help managers and HR consider internal talent before defaulting to external hiring, and share only the minimum information a decision needs.
 
 ## Demo Scenario
 
@@ -84,7 +97,9 @@ The **Learning Catalog** brings internal training programs together so employees
 
 ### Manager: Internal Staffing Decision Support
 
-The Manager workspace does not automatically rank or select candidates.
+The Manager workspace does not select candidates or produce a final ranking.
+
+Visible candidates are listed in order of current Skill Match (ties are broken by fewer priority gaps, then fewer significant gaps) so the list is easy to read. That order is not a recommendation: the readiness label and the staffing route carry the meaning, and the decision stays with the manager.
 
 Its purpose is to help answer a narrower question:
 
@@ -318,21 +333,58 @@ Main data entities include:
 - Training records
 - Future workforce demand
 
-Project structure:
+### Data model
+
+The schema has 14 tables. This overview is generated from `database/schema.sql`:
+
+```mermaid
+erDiagram
+    departments ||--o{ roles : "department_id"
+    roles ||--o{ employees : "current_role_id"
+    employees |o--o{ employees : "manager_id"
+    employees ||--o{ employee_skills : "employee_id"
+    skills ||--o{ employee_skills : "skill_id"
+    roles ||--o{ role_skills : "role_id"
+    skills ||--o{ role_skills : "skill_id"
+    employees ||--o{ employee_career_interests : "employee_id"
+    roles ||--o{ employee_career_interests : "target_role_id"
+    roles ||--o{ career_paths : "source_role_id"
+    roles ||--o{ career_paths : "target_role_id"
+    roles ||--o{ job_openings : "role_id"
+    employees ||--o{ job_openings : "hiring_manager_id"
+    training_programs ||--o{ training_skills : "training_id"
+    skills ||--o{ training_skills : "skill_id"
+    training_programs ||--o{ training_prerequisites : "training_id"
+    skills ||--o{ training_prerequisites : "skill_id"
+    employees ||--o{ employee_training_records : "employee_id"
+    training_programs ||--o{ employee_training_records : "training_id"
+    roles ||--o{ future_demand : "role_id"
+```
+
+Column-level diagrams for each area are in [`docs/er-diagram.md`](docs/er-diagram.md). [`docs/schema.dbml`](docs/schema.dbml) can be pasted into [dbdiagram.io](https://dbdiagram.io) for a polished image. Regenerate both with `python database/generate_er_diagram.py`; a test fails if they fall out of date.
+
+### Project structure
 
 ```text
 WorkforceIQ/
 ├── app/
 │   ├── app.py
-│   ├── db.py
+│   ├── db.py              # SQL queries and per-visitor database copies
+│   ├── readiness.py       # evidence coverage, internal readiness, staffing route
+│   ├── planning.py        # workforce gap and capability-coverage calculations
 │   └── views/
 │
 ├── database/
 │   ├── schema.sql
 │   ├── seed_*.sql
-│   └── rebuild_db.py
+│   ├── rebuild_db.py
+│   └── generate_er_diagram.py
+│
+├── tests/
 │
 ├── docs/
+│   ├── er-diagram.md
+│   ├── schema.dbml
 │   └── images/
 │       ├── employee-career-overview.png
 │       ├── employee-career-detail.png
@@ -341,6 +393,7 @@ WorkforceIQ/
 │       ├── hr-workforce-demand.png
 │       └── hr-capability-gaps.png
 │
+├── .github/workflows/tests.yml
 ├── SQL/
 └── requirements.txt
 ```
@@ -369,7 +422,7 @@ To rebuild while preserving existing saved career interests:
 python database/rebuild_db.py --keep-interests
 ```
 
-If an existing database is present, the rebuild process creates a backup before replacing it. The public demo also includes **Demo controls → Reset demo data**, which restores the seeded career interests and visibility settings without creating a backup.
+If an existing database is present, the rebuild process creates a backup before replacing it.
 
 The rebuild script also checks:
 
@@ -377,6 +430,12 @@ The rebuild script also checks:
 - Foreign-key consistency
 - Key schema constraints
 - Seed-data consistency
+
+### One private copy per visitor
+
+`database/workforceiq.db` is a read-only baseline: the running app never writes to it. Each visitor session works on its own temporary copy, so saving a career interest or changing its visibility in one browser tab does not affect anyone else.
+
+**Demo controls → Reset demo data** restores the seeded career interests and visibility settings in the visitor's own copy only. Copies live in the system temp folder and are removed automatically after about a day of inactivity.
 
 ## Why Rule-Based Instead of Machine Learning?
 
@@ -398,6 +457,26 @@ For this prototype, transparent rules that can be directly inspected are therefo
 
 If sufficiently large, properly governed historical data becomes available in the future, rule-based, statistical, and machine-learning approaches could then be compared empirically.
 
+## Testing
+
+The decision logic is covered by automated tests that run on every push (see the badge at the top):
+
+```bash
+python -m unittest discover -s tests
+```
+
+| Area | What is checked |
+|---|---|
+| Skill Match and gaps | Weighted match, the 100% cap per skill, gap and priority-gap counts, and missing records scored as 0 without being counted as gaps. Checked against a small database whose answers are worked out by hand. |
+| Manager visibility | Only interests that the employee made visible, in the exact role of an open requisition owned by the requesting manager, are shown. Private interests, other roles, paused openings and the hiring manager are excluded. |
+| Readiness and staffing route | Every threshold at its boundary (70% evidence coverage, 80% and 60% Skill Match, priority and significant gap limits) and each staffing route. |
+| Workforce planning | `max(planned − current, 0)` and which required skills the internal catalog cannot cover. |
+| Per-visitor database | Visitors get separate copies, saves and resets stay private, and stale copies are cleaned up. |
+| Seeded demo | The database rebuilds with every integrity check passing, and the README walkthrough (River Hsu → Riley Chang → `Internal Mobility` / `Train First`) still holds. |
+| Documentation | The ER diagrams match `schema.sql`. |
+
+The Streamlit screens themselves are not covered by automated tests; they are verified through manual QA.
+
 ## Limitations
 
 WorkforceIQ is currently a prototype.
@@ -408,7 +487,8 @@ Its main limitations are:
 - **Heuristic thresholds:** Readiness thresholds have not been validated or calibrated against real mobility outcomes.
 - **No production authentication or RBAC:** Workspace visibility is currently controlled through query logic, application logic, and UI flow.
 - **No outcome validation:** There are no real mobility, hiring, or performance labels with which to test predictive validity.
-- **No automated application test suite:** Database rebuilds include integrity and consistency checks, while application behavior is currently verified mainly through manual QA.
+- **Tests cover the logic, not the interface:** The decision rules, visibility rules, per-visitor databases and database rebuild are covered by automated tests (see [Testing](#testing)). The Streamlit screens are verified through manual QA.
+- **Demo data is temporary:** Each visitor's private copy is tied to the browser session. Refreshing the page, or the hosting service restarting the app, starts a new copy from the seeded data, which works like an automatic reset.
 - **Prototype deployment:** The system is intended as a local and portfolio prototype rather than a production HR platform.
 
 ## Project Scope

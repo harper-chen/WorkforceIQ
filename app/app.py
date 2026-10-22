@@ -43,6 +43,13 @@ st.caption(
     "Strategic Workforce Planning"
 )
 
+st.info(
+    "**Synthetic demo data.** Every employee, role, skill, and number "
+    "in this prototype is fictional and was generated for demonstration. "
+    "Nothing here describes a real person or organization.",
+    icon="🧪",
+)
+
 
 DEMO_EMPLOYEE_NAME = "River Hsu"
 DEMO_MANAGER_NAME = "Riley Chang"
@@ -296,7 +303,7 @@ elif workspace == "HR / Workforce Planning":
 # =========================================================
 
 def _reset_demo():
-    """Restore seeded demo data and clear DB-backed UI state."""
+    """Restore this visitor's seeded demo data and clear DB-backed UI state."""
     reset_demo_database()
 
     for key in list(st.session_state.keys()):
@@ -312,8 +319,10 @@ def _reset_demo():
 
 with st.sidebar.expander("Demo controls"):
     st.caption(
-        "Restore saved career interests and visibility settings "
-        "to the seeded demo state."
+        "You are working on your own private copy of the demo data, "
+        "so changes you make are not shared with other visitors and "
+        "are temporary. Reset restores the seeded career interests "
+        "and visibility settings in your copy only."
     )
     st.button(
         "Reset demo data",
