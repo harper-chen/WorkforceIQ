@@ -119,18 +119,14 @@ The Employee workspace helps people understand where they are today and what the
 
 In **My Skills**, employees can review their current role, recorded skills, and proficiency levels.
 
-If a skill has no record, the system shows:
-
-`Not recorded`
-
-rather than assuming the employee does not have that capability.
+My Skills lists only what is recorded; it never fills in a missing skill with a zero.
 
 In **Career Exploration**, the system compares an employee's skill profile with a target role's requirements and shows:
 
 - Overall Skill Match
 - Skills that already meet the role requirement
 - Recorded skill gaps
-- Skills that are not recorded yet
+- Skills that are not recorded yet, labeled `Not recorded` rather than treated as a missing capability
 - Internal learning options for relevant gaps
 
 Employees can also save roles they are interested in.

@@ -123,18 +123,14 @@ Employee workspace 幫助員工了解目前的能力狀態、探索未來可能�
 - 已記錄的 skills
 - Proficiency levels
 
-如果某項 skill 沒有紀錄，系統會顯示：
-
-`Not recorded`
-
-而不是直接解讀為員工不具備該能力。
+My Skills 只列出已記錄的 skills，不會把缺少的 skill 補成 0。
 
 在 **Career Exploration** 中，系統會比較員工目前的 skill profile 與 target role requirements，並顯示：
 
 - Overall Skill Match
 - 已達到 role requirement 的 skills
 - Recorded skill gaps
-- 尚未記錄的 skills
+- 尚未記錄的 skills，標示為 `Not recorded`，而不是直接當成缺少該能力
 - 對應的 internal learning options
 
 員工也可以儲存有興趣的 career role。
