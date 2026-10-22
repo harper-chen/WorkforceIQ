@@ -18,14 +18,12 @@
 
 WorkforceIQ 目前使用 **synthetic enterprise workforce data**，以 Python、Pandas、SQL、SQLite 與 Streamlit 建構。
 
-## Quick Start
+| Employee | Manager | HR |
+|:---:|:---:|:---:|
+| ![Employee: Career Exploration](docs/images/employee-career-overview.png) | ![Manager: Staffing Decision](docs/images/manager-staffing-decision.png) | ![HR: Capability Gaps](docs/images/hr-capability-gaps.png) |
+| *我可以往哪裡發展？還缺什麼？* | *這個職缺能不能先由內部人才補上？* | *公司的學習資源能不能培養未來需要的能力？* |
 
-```bash
-pip install -r requirements.txt
-python database/rebuild_db.py      # 從 schema 與 seed files 建立 demo database
-streamlit run app/app.py
-python -m unittest discover -s tests   # 選用：執行自動化測試
-```
+**[試用線上 Demo →](https://workforceiq-demo.streamlit.app/)** 先以 River Hsu（Employee），再以 Riley Chang（Manager）體驗。見 [Demo Scenario](#demo-scenario)。
 
 ## Why WorkforceIQ?
 
@@ -65,7 +63,56 @@ WorkforceIQ 將這些資訊整合到同一個 decision-support workflow 中。
 
 這條 walkthrough 將 Employee、Manager 與 HR 三個視角串在同一個 workforce scenario 中。
 
+## Screenshots
+
+<details>
+<summary>完整截圖與說明</summary>
+
+### Employee — Career Exploration
+
+River Hsu 從 Business Analyst 出發，探索 Systems Analyst。Overview 顯示推薦職涯選項與目前的 skill fit。
+
+![Career Exploration Overview](docs/images/employee-career-overview.png)
+
+Role-detail view 會把 recorded gaps 與 missing evidence 分開呈現，並把 development needs 連結到可用的 internal learning options。
+
+![Career Exploration Detail](docs/images/employee-career-detail.png)
+
+### Manager — Internal Staffing
+
+Riley Chang 檢視一個 open 的 Systems Analyst requisition。
+
+![Manager Opening](docs/images/manager-opening.png)
+
+WorkforceIQ 將 River Hsu 顯示為可見的 internal candidate，並根據目前已記錄的 evidence，建議 `Internal Mobility` / `Train First` pathway。
+
+![Manager Staffing Decision](docs/images/manager-staffing-decision.png)
+
+### HR — Workforce Planning
+
+HR 比較 Current Headcount 與 Planned Headcount，以辨識未來 workforce gaps。
+
+![Workforce Demand](docs/images/hr-workforce-demand.png)
+
+接著，系統會標示目前 internal learning catalog 尚無法充分支撐的 capability needs。
+
+![Capability Gaps](docs/images/hr-capability-gaps.png)
+
+</details>
+
+## Quick Start
+
+```bash
+pip install -r requirements.txt
+python database/rebuild_db.py      # 從 schema 與 seed files 建立 demo database
+streamlit run app/app.py
+python -m unittest discover -s tests   # 選用：執行自動化測試
+```
+
 ## What the System Supports
+
+<details>
+<summary>Employee、Manager、HR 三個 workspace 的完整功能說明</summary>
 
 ### Employee：Skills、Career Exploration 與 Learning
 
@@ -204,37 +251,7 @@ Gap Roles
 
 > 公司目前的 internal learning system 是否有能力培養這些未來職務需要的能力？
 
-## Screenshots
-
-### Employee — Career Exploration
-
-River Hsu 從 Business Analyst 出發，探索 Systems Analyst。Overview 顯示推薦職涯選項與目前的 skill fit。
-
-![Career Exploration Overview](docs/images/employee-career-overview.png)
-
-Role-detail view 會把 recorded gaps 與 missing evidence 分開呈現，並把 development needs 連結到可用的 internal learning options。
-
-![Career Exploration Detail](docs/images/employee-career-detail.png)
-
-### Manager — Internal Staffing
-
-Riley Chang 檢視一個 open 的 Systems Analyst requisition。
-
-![Manager Opening](docs/images/manager-opening.png)
-
-WorkforceIQ 將 River Hsu 顯示為可見的 internal candidate，並根據目前已記錄的 evidence，建議 `Internal Mobility` / `Train First` pathway。
-
-![Manager Staffing Decision](docs/images/manager-staffing-decision.png)
-
-### HR — Workforce Planning
-
-HR 比較 Current Headcount 與 Planned Headcount，以辨識未來 workforce gaps。
-
-![Workforce Demand](docs/images/hr-workforce-demand.png)
-
-接著，系統會標示目前 internal learning catalog 尚無法充分支撐的 capability needs。
-
-![Capability Gaps](docs/images/hr-capability-gaps.png)
+</details>
 
 ## Skill Matching Logic
 

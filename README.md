@@ -18,14 +18,12 @@ The system does not make promotion, transfer, hiring, or termination decisions o
 
 WorkforceIQ currently runs on **synthetic enterprise workforce data** and is built with Python, Pandas, SQL, SQLite, and Streamlit.
 
-## Quick Start
+| Employee | Manager | HR |
+|:---:|:---:|:---:|
+| ![Employee: Career Exploration](docs/images/employee-career-overview.png) | ![Manager: Staffing Decision](docs/images/manager-staffing-decision.png) | ![HR: Capability Gaps](docs/images/hr-capability-gaps.png) |
+| *Where could I grow, and what is still missing?* | *Can this opening be filled internally?* | *Can our learning catalog build the skills we will need?* |
 
-```bash
-pip install -r requirements.txt
-python database/rebuild_db.py      # build the demo database from schema + seed files
-streamlit run app/app.py
-python -m unittest discover -s tests   # optional: run the automated tests
-```
+**[Try the live demo →](https://workforceiq-demo.streamlit.app/)** Start with River Hsu (Employee), then Riley Chang (Manager). See the [Demo Scenario](#demo-scenario).
 
 ## Why WorkforceIQ?
 
@@ -65,7 +63,56 @@ For a consistent walkthrough of the prototype:
 
 This walkthrough connects the employee, manager, and HR perspectives around the same workforce scenario.
 
+## Screenshots
+
+<details>
+<summary>All screenshots, with explanations</summary>
+
+### Employee — Career Exploration
+
+River Hsu explores a move from Business Analyst to Systems Analyst. The overview surfaces recommended career options and current skill fit.
+
+![Career Exploration Overview](docs/images/employee-career-overview.png)
+
+The role-detail view separates recorded gaps from missing evidence and links development needs to available internal learning options.
+
+![Career Exploration Detail](docs/images/employee-career-detail.png)
+
+### Manager — Internal Staffing
+
+Riley Chang reviews an open Systems Analyst requisition.
+
+![Manager Opening](docs/images/manager-opening.png)
+
+WorkforceIQ surfaces River Hsu as a visible internal candidate and recommends an `Internal Mobility` / `Train First` pathway based on the recorded evidence.
+
+![Manager Staffing Decision](docs/images/manager-staffing-decision.png)
+
+### HR — Workforce Planning
+
+HR compares current and planned headcount to identify future workforce gaps.
+
+![Workforce Demand](docs/images/hr-workforce-demand.png)
+
+The system then highlights capability needs that the current internal learning catalog cannot fully support.
+
+![Capability Gaps](docs/images/hr-capability-gaps.png)
+
+</details>
+
+## Quick Start
+
+```bash
+pip install -r requirements.txt
+python database/rebuild_db.py      # build the demo database from schema + seed files
+streamlit run app/app.py
+python -m unittest discover -s tests   # optional: run the automated tests
+```
+
 ## What the System Supports
+
+<details>
+<summary>Full feature walkthrough for the Employee, Manager, and HR workspaces</summary>
 
 ### Employee: Skills, Career Exploration, and Learning
 
@@ -200,37 +247,7 @@ and also ask:
 
 > Can our current learning system build the capabilities those roles will need?
 
-## Screenshots
-
-### Employee — Career Exploration
-
-River Hsu explores a move from Business Analyst to Systems Analyst. The overview surfaces recommended career options and current skill fit.
-
-![Career Exploration Overview](docs/images/employee-career-overview.png)
-
-The role-detail view separates recorded gaps from missing evidence and links development needs to available internal learning options.
-
-![Career Exploration Detail](docs/images/employee-career-detail.png)
-
-### Manager — Internal Staffing
-
-Riley Chang reviews an open Systems Analyst requisition.
-
-![Manager Opening](docs/images/manager-opening.png)
-
-WorkforceIQ surfaces River Hsu as a visible internal candidate and recommends an `Internal Mobility` / `Train First` pathway based on the recorded evidence.
-
-![Manager Staffing Decision](docs/images/manager-staffing-decision.png)
-
-### HR — Workforce Planning
-
-HR compares current and planned headcount to identify future workforce gaps.
-
-![Workforce Demand](docs/images/hr-workforce-demand.png)
-
-The system then highlights capability needs that the current internal learning catalog cannot fully support.
-
-![Capability Gaps](docs/images/hr-capability-gaps.png)
+</details>
 
 ## Skill Matching Logic
 
