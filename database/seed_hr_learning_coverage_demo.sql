@@ -154,10 +154,18 @@ SELECT
         / COUNT(*),
         0
     ) AS profile_coverage_percent,
-    SUM(CASE WHEN gap >= 2 THEN 1 ELSE 0 END) AS significant_gaps,
     SUM(
         CASE
-            WHEN gap >= 2 AND importance_level >= 4 THEN 1
+            WHEN employee_level IS NOT NULL
+             AND gap >= 2 THEN 1
+            ELSE 0
+        END
+    ) AS significant_gaps,
+    SUM(
+        CASE
+            WHEN employee_level IS NOT NULL
+             AND gap >= 2
+             AND importance_level >= 4 THEN 1
             ELSE 0
         END
     ) AS priority_gaps
