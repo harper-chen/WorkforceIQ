@@ -219,12 +219,12 @@ Workforce Gap = max(Planned Headcount - Current Headcount, 0)
 
 HR can adjust planned headcount to explore how future staffing needs change.
 
-#### Can current internal learning support those future roles?
+#### Can current internal learning build the capabilities our roles require?
 
-For roles with a workforce gap, WorkforceIQ links workforce demand with role-skill requirements and the internal training catalog:
+WorkforceIQ checks the skill requirements of **every existing role** against the internal training catalog:
 
 ```text
-Gap Roles
+All Roles
 → Role Skill Requirements
 → Internal Training Coverage
 → Capability Development Priorities
@@ -232,15 +232,15 @@ Gap Roles
 
 For each required skill, the system looks at the **highest training outcome level** currently available in the internal catalog.
 
-If that level is still below what a gap role requires, the skill is surfaced as a capability development priority.
+If that level is still below what any role requires, the skill is surfaced as a capability development priority, together with the roles it affects.
 
-This means workforce planning can go beyond:
+This check is independent of the headcount scenario: it reflects a structural property of the learning catalog rather than a single planning period. Combined with the workforce-gap view, HR can see both:
 
 > Which roles may become short-staffed?
 
-and also ask:
+and:
 
-> Can our current learning system build the capabilities those roles will need?
+> Which role capabilities can our current learning system not build at all?
 
 </details>
 

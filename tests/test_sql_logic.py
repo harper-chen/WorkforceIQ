@@ -205,10 +205,11 @@ class TestWorkforceDemand(support.FixtureDatabaseTestCase):
     def test_only_roles_in_the_selected_period_are_returned(self):
         self.assertEqual(db.get_workforce_demand("2028-Q4")["role_name"].tolist(), ["Systems Analyst"])
 
-    def test_requirements_cover_only_roles_in_the_period(self):
-        table = db.get_future_role_skill_requirements("2028-Q4")
-        self.assertEqual(set(table["role_name"]), {"Systems Analyst"})
-        self.assertEqual(len(table), 4)
+    def test_requirements_cover_every_role_regardless_of_period(self):
+        # Data Engineer is not part of the 2028-Q4 demand, but it is still checked.
+        table = db.get_all_role_skill_requirements()
+        self.assertEqual(set(table["role_name"]), {"Systems Analyst", "Data Engineer"})
+        self.assertEqual(len(table[table["role_name"] == "Systems Analyst"]), 4)
 
 
 if __name__ == "__main__":

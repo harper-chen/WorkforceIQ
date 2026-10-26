@@ -1855,14 +1855,14 @@ def get_internal_training_outcomes():
         )
 
 
-def get_future_role_skill_requirements(planning_period: str):
+def get_all_role_skill_requirements():
     """
-    Return role-skill requirements for roles included in future_demand
-    for the selected planning period.
+    Return role-skill requirements for every existing role,
+    independent of any planning period or headcount scenario.
     """
     query = """
     SELECT
-        fd.role_id,
+        r.role_id,
         r.role_name,
         d.department_name,
         rs.skill_id,
@@ -1870,16 +1870,13 @@ def get_future_role_skill_requirements(planning_period: str):
         s.skill_category,
         rs.required_level,
         rs.importance_level
-    FROM future_demand fd
-    JOIN roles r
-        ON r.role_id = fd.role_id
+    FROM roles r
     JOIN departments d
         ON d.department_id = r.department_id
     JOIN role_skills rs
-        ON rs.role_id = fd.role_id
+        ON rs.role_id = r.role_id
     JOIN skills s
         ON s.skill_id = rs.skill_id
-    WHERE fd.planning_period = ?
     ORDER BY
         r.role_name,
         rs.importance_level DESC,
@@ -1890,7 +1887,6 @@ def get_future_role_skill_requirements(planning_period: str):
         return pd.read_sql_query(
             query,
             conn,
-            params=(planning_period,),
         )
 
 

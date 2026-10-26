@@ -223,12 +223,12 @@ Workforce Gap = max(Planned Headcount - Current Headcount, 0)
 
 HR 可以調整 planned headcount，觀察不同 roles 的未來 staffing needs 如何變化。
 
-#### 現有 internal learning 是否足以支撐這些未來職務？
+#### 現有 internal learning 能否培養各職務所需的能力？
 
-對具有 workforce gap 的 roles，WorkforceIQ 會把 workforce demand、role skill requirements 與 internal training catalog 串接起來：
+WorkforceIQ 會拿 **所有現有 roles** 的 skill requirements 與 internal training catalog 比對：
 
 ```text
-Gap Roles
+All Roles
 → Role Skill Requirements
 → Internal Training Coverage
 → Capability Development Priorities
@@ -236,15 +236,15 @@ Gap Roles
 
 對每一項 required skill，系統會找出目前 internal training catalog 可提供的 **最高 training outcome level**。
 
-如果這個 level 仍低於 gap role 所要求的 proficiency level，該 skill 就會被列為 capability development priority。
+如果這個 level 仍低於任何 role 所要求的 proficiency level，該 skill 就會被列為 capability development priority，並標示受影響的 roles。
 
-這讓 workforce planning 不只回答：
+這項檢查不受 headcount scenario 影響：它反映的是 learning catalog 本身的結構性缺口，而不是單一 planning period 的狀況。搭配 workforce gap 的結果，HR 可以同時看到：
 
 > 哪些職務可能缺人？
 
-也能進一步回答：
+以及：
 
-> 公司目前的 internal learning system 是否有能力培養這些未來職務需要的能力？
+> 哪些職務能力是公司目前的 internal learning system 完全培養不出來的？
 
 </details>
 

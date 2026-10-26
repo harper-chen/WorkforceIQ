@@ -55,17 +55,9 @@ def trainings(*rows):
     )
 
 
-def plan_with_gap(*gaps):
-    """gaps: (role_id, role_name, gap)"""
-    return pd.DataFrame(
-        [{"role_id": r, "Role": n, "Workforce Gap": g} for r, n, g in gaps]
-    )
-
-
 class TestUnaddressedCapabilityGaps(unittest.TestCase):
     def test_skill_is_flagged_only_when_best_course_is_below_requirement(self):
         result = build_unaddressed_capability_gaps(
-            plan_with_gap((2, "Systems Analyst", 3)),
             requirements(
                 (2, "Systems Analyst", 10, "Data Modeling", 4),
                 (2, "Systems Analyst", 11, "SQL", 3),
@@ -77,40 +69,36 @@ class TestUnaddressedCapabilityGaps(unittest.TestCase):
         )
         self.assertEqual(result["Skill"].tolist(), ["Data Modeling"])
         row = result.iloc[0]
-        self.assertEqual(row["Affected Gap Roles"], "Systems Analyst")
+        self.assertEqual(row["Affected Roles"], "Systems Analyst")
         self.assertEqual(row["Required Level"], "L4")
         self.assertEqual(row["Available Internal Training"], "Modeling Basics (L2)")
 
     def test_meeting_the_requirement_exactly_is_covered(self):
         result = build_unaddressed_capability_gaps(
-            plan_with_gap((2, "Systems Analyst", 1)),
             requirements((2, "Systems Analyst", 11, "SQL", 3)),
             trainings((1, "SQL Fundamentals", 11, 3)),
         )
         self.assertTrue(result.empty)
 
-    def test_roles_without_a_workforce_gap_are_ignored(self):
+    def test_every_role_is_checked_regardless_of_workforce_gap(self):
         result = build_unaddressed_capability_gaps(
-            plan_with_gap((1, "Analyst", 0), (2, "Systems Analyst", 2)),
             requirements(
                 (1, "Analyst", 12, "Negotiation", 3),
                 (2, "Systems Analyst", 10, "Data Modeling", 4),
             ),
             trainings(),
         )
-        self.assertEqual(result["Skill"].tolist(), ["Data Modeling"])
+        self.assertEqual(sorted(result["Skill"]), ["Data Modeling", "Negotiation"])
 
-    def test_no_gap_roles_returns_an_empty_table(self):
+    def test_no_requirements_returns_an_empty_table(self):
         result = build_unaddressed_capability_gaps(
-            plan_with_gap((1, "Analyst", 0)),
-            requirements((1, "Analyst", 12, "Negotiation", 3)),
+            requirements(),
             trainings(),
         )
         self.assertTrue(result.empty)
 
     def test_skill_with_no_internal_training_says_so(self):
         result = build_unaddressed_capability_gaps(
-            plan_with_gap((2, "Systems Analyst", 2)),
             requirements((2, "Systems Analyst", 10, "Data Modeling", 4)),
             trainings((1, "SQL Fundamentals", 11, 4)),
         )
@@ -118,7 +106,6 @@ class TestUnaddressedCapabilityGaps(unittest.TestCase):
 
     def test_required_level_is_shown_as_a_range_across_roles(self):
         result = build_unaddressed_capability_gaps(
-            plan_with_gap((2, "Systems Analyst", 2), (3, "Data Engineer", 1)),
             requirements(
                 (2, "Systems Analyst", 10, "Data Modeling", 3),
                 (3, "Data Engineer", 10, "Data Modeling", 5),
@@ -127,11 +114,10 @@ class TestUnaddressedCapabilityGaps(unittest.TestCase):
         )
         row = result.iloc[0]
         self.assertEqual(row["Required Level"], "L3–L5")
-        self.assertEqual(row["Affected Gap Roles"], "Data Engineer, Systems Analyst")
+        self.assertEqual(row["Affected Roles"], "Data Engineer, Systems Analyst")
 
     def test_tied_best_courses_are_all_listed_alphabetically(self):
         result = build_unaddressed_capability_gaps(
-            plan_with_gap((2, "Systems Analyst", 2)),
             requirements((2, "Systems Analyst", 10, "Data Modeling", 5)),
             trainings(
                 (1, "Zebra Modeling", 10, 3),
@@ -146,7 +132,6 @@ class TestUnaddressedCapabilityGaps(unittest.TestCase):
 
     def test_empty_training_catalog_flags_every_required_skill(self):
         result = build_unaddressed_capability_gaps(
-            plan_with_gap((2, "Systems Analyst", 2)),
             requirements(
                 (2, "Systems Analyst", 10, "Data Modeling", 4),
                 (2, "Systems Analyst", 11, "SQL", 3),

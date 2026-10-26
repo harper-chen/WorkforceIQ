@@ -9,7 +9,7 @@ from db import (
     get_planning_periods,
     get_workforce_demand,
     get_internal_training_outcomes,
-    get_future_role_skill_requirements,
+    get_all_role_skill_requirements,
 )
 
 
@@ -131,9 +131,7 @@ def render_hr_workforce_planning():
         return
 
     role_skill_requirements = (
-        get_future_role_skill_requirements(
-            selected_period
-        )
+        get_all_role_skill_requirements()
     )
 
     training_outcomes = (
@@ -342,13 +340,6 @@ def render_hr_workforce_planning():
         if planned_headcount_changed:
             st.rerun()
 
-        workforce_plan = build_workforce_plan(
-            demand,
-            st.session_state[
-                state_key
-            ],
-        )
-
     # =====================================================
     # 2. Unaddressed Capability Gaps
     # =====================================================
@@ -360,15 +351,14 @@ def render_hr_workforce_planning():
     )
 
     st.caption(
-        "Only skills required by roles with a positive workforce "
-        "gap are evaluated here. A skill appears only when the "
-        "current internal learning catalog cannot reach the "
-        "required proficiency level."
+        "The skill requirements of every existing role are evaluated "
+        "here, independent of the headcount scenario above. A skill "
+        "appears only when the current internal learning catalog "
+        "cannot reach the required proficiency level."
     )
 
     unaddressed = (
         build_unaddressed_capability_gaps(
-            workforce_plan,
             role_skill_requirements,
             training_outcomes,
         )
@@ -377,12 +367,11 @@ def render_hr_workforce_planning():
     if unaddressed.empty:
         st.success(
             "Current internal learning coverage is sufficient "
-            "for the skill requirements of all roles with "
-            "positive workforce gaps."
+            "for the skill requirements of all existing roles."
         )
     else:
         st.warning(
-            "These future capability needs are not fully supported "
+            "These role capability needs are not fully supported "
             "by the current internal learning catalog."
         )
 

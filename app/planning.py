@@ -3,8 +3,9 @@ Workforce-gap and capability-coverage calculations (no Streamlit, no database).
 
     Workforce Gap = max(Planned Headcount - Current Headcount, 0)
 
-For roles with a gap, a required skill is "unaddressed" when the highest outcome level
-offered by any internal training course is below the level the role requires.
+Across all existing roles, a required skill is "unaddressed" when the highest outcome
+level offered by any internal training course is below the level the role requires.
+This check does not depend on planned headcount.
 Kept separate from the Streamlit view so the arithmetic can be unit-tested.
 """
 
@@ -53,42 +54,23 @@ def build_workforce_plan(
 
 
 def build_unaddressed_capability_gaps(
-    workforce_plan: pd.DataFrame,
     role_skill_requirements: pd.DataFrame,
     training_outcomes: pd.DataFrame,
 ) -> pd.DataFrame:
     """
-    Show only skill requirements attached to roles with a
-    positive workforce gap that cannot be fully reached by
-    the current internal learning catalog.
+    Check the skill requirements of every existing role and show
+    the ones the current internal learning catalog cannot fully
+    reach.
 
     For each skill, Available Internal Training shows the
     course or courses with the highest available outcome level.
     """
-    gap_roles = workforce_plan[
-        workforce_plan[
-            "Workforce Gap"
-        ] > 0
-    ][
-        [
-            "role_id",
-            "Role",
-        ]
-    ].copy()
-
-    if gap_roles.empty:
+    if role_skill_requirements.empty:
         return pd.DataFrame()
 
-    requirements = (
-        role_skill_requirements.merge(
-            gap_roles,
-            on="role_id",
-            how="inner",
-        )
+    requirements = role_skill_requirements.rename(
+        columns={"role_name": "Role"}
     )
-
-    if requirements.empty:
-        return pd.DataFrame()
 
     # Highest internal-learning outcome currently available
     # for each skill.
@@ -208,7 +190,7 @@ def build_unaddressed_capability_gaps(
             {
                 "Skill":
                     skill_name,
-                "Affected Gap Roles":
+                "Affected Roles":
                     ", ".join(
                         affected_roles
                     ),
@@ -223,7 +205,7 @@ def build_unaddressed_capability_gaps(
 
     return result.sort_values(
         [
-            "Affected Gap Roles",
+            "Affected Roles",
             "Skill",
         ]
     ).reset_index(
