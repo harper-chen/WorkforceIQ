@@ -4,257 +4,115 @@ English | [繁體中文](README.zh-TW.md)
 
 [![Tests](https://github.com/harper-chen/WorkforceIQ/actions/workflows/tests.yml/badge.svg)](https://github.com/harper-chen/WorkforceIQ/actions/workflows/tests.yml)
 
-**WorkforceIQ is a human-centered workforce decision-support system that connects employee skills, career interests, internal learning resources, role requirements, and future workforce demand.**
+A workforce decision-support app that connects employees' skills, career interests and training with job openings and future headcount plans, so organizations can grow talent internally before hiring from outside, without taking decisions away from people.
+
+**[Try the live demo →](https://workforceiq-demo.streamlit.app/)** No sign-up needed. Start with River Hsu (Employee), then Riley Chang (Manager); see [Try the demo](#try-the-demo).
 
 <p align="center">
   <a href="https://workforceiq-demo.streamlit.app/"><img src="docs/images/manager-staffing-decision.png" alt="WorkforceIQ manager staffing decision view" width="900"></a>
 </p>
 
-<p align="center"><em>Manager view: a visible internal candidate, with an evidence-based staffing route and readiness label.</em></p>
+<p align="center"><em>Manager view: an employee who chose to share interest in the role, with a readiness label and a suggested staffing route.</em></p>
 
-**[Try the live demo →](https://workforceiq-demo.streamlit.app/)** Start with River Hsu (Employee), then Riley Chang (Manager). See the [Demo Scenario](#demo-scenario).
+## The problem
 
-It is designed to help three groups answer different but connected questions:
+The idea came from an internship at a large electronics company with a well-developed training program. I noticed three disconnected pieces:
 
-- **Employees:** What roles could I grow into next?
-- **Managers:** Could this staffing need be addressed through internal mobility first?
-- **HR / Workforce Planning:** Where are future workforce gaps likely to appear, and can current learning resources support the capabilities those roles require?
+1. **Training does not lead anywhere visible.** Employees take courses and improve their skills, but a course catalog answers "what will this teach me?", not "which role does this prepare me for, and how far am I from it?"
+2. **Internal talent is easy to miss.** When skills, career interests and job openings live in separate places, a company may hire externally even though an employee could grow into the role with targeted training.
+3. **Sharing career interests feels risky.** An employee exploring another team may stop using a career tool if their manager can see everything.
 
-The system does not make promotion, transfer, hiring, or termination decisions on behalf of people. Instead, it brings fragmented workforce data together and turns it into transparent, explainable, and actionable decision support.
+## What this project changes
 
-WorkforceIQ currently runs on **synthetic enterprise workforce data** and is built with Python, Pandas, SQL, SQLite, and Streamlit.
+| | Before | With WorkforceIQ |
+|---|---|---|
+| **Employees** | Know what a course teaches, but not where it could take them | See how well their recorded skills match a target role, which gaps remain, and which internal courses close them |
+| **Managers** | Fill an opening without knowing who inside is interested and close | See employees who chose to share interest in that exact role, each with a readiness label and a suggested route: internal mobility, more evidence needed, or external hire |
+| **HR** | Plan headcount and training separately | See which roles will be short-staffed and which required skills the current training catalog cannot build at all |
+| **Privacy** | Interest in another role is either hidden or exposed | Career interests are private by default; a manager sees one only when the employee opts in and it matches an open position that manager owns |
 
-## Why WorkforceIQ?
+The app never promotes, transfers, hires or rejects anyone. It brings scattered information together and explains its suggestions; people make the decisions.
 
-Workforce-related information is often scattered across separate systems:
+## What I built
 
-- Employee skill profiles
-- Role requirements
-- Career interests
-- Internal training programs
-- Job openings
-- Future headcount plans
+I designed and built WorkforceIQ on my own, from the data model to the interface:
 
-Each source is useful on its own, but many workforce decisions depend on how these sources relate to one another.
+- **A relational database of 14 tables** (employees, skills, roles, training, career interests, openings, future demand), filled with synthetic data for 100 employees, 16 roles, 98 skills and 67 training programs, with integrity checks on every rebuild.
+- **Transparent matching and readiness rules** written in SQL and Python, kept separate from the interface so each rule can be tested on its own.
+- **Three workspaces in Streamlit** for employees, managers and HR, with privacy rules enforced in the database queries.
+- **99 automated tests** that run on every push (Python 3.11 and 3.12), including hand-worked examples for the matching math and every readiness threshold at its boundary.
 
-For example, knowing that a role will need more headcount is only part of the problem. A manager may also want to know whether interested internal employees are close enough to the role requirements, while HR may want to know whether the current learning catalog can actually build the capabilities those future roles require.
+## How it works
 
-WorkforceIQ connects these pieces in one decision-support workflow.
+The demo follows one story across the three workspaces.
 
-### Where the idea came from
-
-The idea comes from something I noticed during an internship at a large electronics company with a well-developed training program and a large workforce: employees improve their skills through courses, but the improvement is mostly known only to themselves and does little for their career development. Companies invest heavily in training, yet employees often cannot see where completing a course could take them. A learning catalog answers "what will this course teach me?" but not "which role does this prepare me for, and how far am I from it?"
-
-It is also a staffing question. When training, skills, career interests and job openings are not connected, an organization may keep recruiting externally even though an internal employee could grow into the role with targeted development. Clear internal career pathways are not only an employee benefit; they can be part of a workforce strategy.
-
-Connecting this information raises a second problem: should managers see every employee's career interests? An employee exploring another role privately may stop using a career-planning tool if their manager can see it. So career interests are **private by default**, and a manager sees one only when the employee opts in **and** it matches the exact role of an open requisition that manager owns.
-
-WorkforceIQ therefore tries to hold three things together: help employees see how learning leads to roles, help managers and HR consider internal talent before defaulting to external hiring, and share only the minimum information a decision needs.
-
-## Demo Scenario
-
-For a consistent walkthrough of the prototype:
-
-1. **Employee:** Start with **River Hsu — Business Analyst** in **My Skills** to review the skills currently recorded in his profile.
-2. Open **Career Exploration** and select **Systems Analyst** to review his Skill Match, skill gaps, and learning options.
-3. Switch to **Manager** and select **Riley Chang** to review the open **Systems Analyst** requisition and River's internal readiness.
-4. Continue to **HR / Workforce Planning** to see how the same role appears in future workforce demand and capability-gap planning.
-
-This walkthrough connects the employee, manager, and HR perspectives around the same workforce scenario.
-
-## Screenshots
-
-<details>
-<summary>All screenshots, with explanations</summary>
-
-### Employee — Career Exploration
-
-River Hsu explores a move from Business Analyst to Systems Analyst. The overview surfaces recommended career options and current skill fit.
+**1. An employee explores a next role.** River Hsu, a Business Analyst, opens Career Exploration and sees recommended next roles (formal career paths from his current role first), each with how well his recorded skills match it.
 
 ![Career Exploration Overview](docs/images/employee-career-overview.png)
 
-The role-detail view separates recorded gaps from missing evidence and links development needs to available internal learning options.
+**2. He sees the gaps and how to close them.** The detail view separates real skill gaps from skills that are simply not recorded yet, and links each gap to internal courses (with their prerequisites). He has saved Systems Analyst as a career interest and made it visible to opening managers, while his other saved interest, BI Analyst, stays private.
 
 ![Career Exploration Detail](docs/images/employee-career-detail.png)
 
-### Manager — Internal Staffing
-
-Riley Chang reviews an open Systems Analyst requisition.
+**3. A manager reviews an opening.** Riley Chang has an open Systems Analyst position.
 
 ![Manager Opening](docs/images/manager-opening.png)
 
-WorkforceIQ surfaces River Hsu as a visible internal candidate and recommends an `Internal Mobility` / `Train First` pathway based on the recorded evidence.
+**4. The app suggests looking inside first.** Because River shared his interest, Riley sees him with a `Train First` readiness label, and the suggested route is `Internal Mobility`. The decision stays with Riley.
 
 ![Manager Staffing Decision](docs/images/manager-staffing-decision.png)
 
-### HR — Workforce Planning
-
-HR compares current and planned headcount to identify future workforce gaps.
+**5. HR sees the bigger picture.** HR adjusts planned headcount to see which roles will be short-staffed.
 
 ![Workforce Demand](docs/images/hr-workforce-demand.png)
 
-The system then highlights capability needs that the current internal learning catalog cannot fully support.
+**6. HR checks whether training can close the gaps.** The app lists required skills that no internal course teaches to the level a role needs, and the roles affected.
 
 ![Capability Gaps](docs/images/hr-capability-gaps.png)
 
-</details>
+## Design choices
 
-## Quick Start
+Each of these comes from a risk I wanted the system to avoid:
 
-```bash
-pip install -r requirements.txt
-python database/rebuild_db.py      # build the demo database from schema + seed files
-streamlit run app/app.py
-python -m unittest discover -s tests   # optional: run the automated tests
-```
+- **Missing data is not a weakness.** If a skill is not recorded, the app shows `Not recorded` instead of treating it as a gap. When too little is recorded to judge (under 70% of a role's required skills), readiness is `Not assessed` and the route becomes `More Evidence Needed`, rather than suggesting an external hire.
+- **One strength cannot hide another gap.** Each skill counts for at most 100% of its requirement, so being excellent at one skill does not cancel a missing one.
+- **Privacy by default, sharing by choice.** Career interests start private. Managers see only what employees chose to share, only for the exact role of an open position they own, and HR planning stays at the aggregate level.
+- **No ranking that decides for people.** The candidate list is sorted for readability, but the readiness label and the explanation carry the meaning, and the app never makes the decision.
+- **Rules instead of machine learning, on purpose.** With synthetic data there are no real outcomes (such as successful transfers) to train or validate a model against. Rules anyone can read and question are more honest for the evidence available.
 
-## What the System Supports
+## Try the demo
+
+1. Open the **[live demo](https://workforceiq-demo.streamlit.app/)** and choose the **Employee** workspace with **River Hsu**. Review his skills in **My Skills**.
+2. Open **Career Exploration** and select **Systems Analyst** to see the match, the gaps and the suggested courses.
+3. Switch to the **Manager** workspace and select **Riley Chang** to review the open Systems Analyst position and River's readiness.
+4. Switch to **HR / Workforce Planning**, change some planned headcounts, and review the capability gaps.
+
+Each visitor works on a private copy of the database, so your changes do not affect anyone else. **Demo controls → Reset demo data** restores the starting state.
+
+## Limitations
+
+WorkforceIQ is a prototype.
+
+- **Synthetic data:** the workforce data is invented and cannot show real organizational patterns.
+- **Untested thresholds:** the readiness thresholds are reasonable defaults, not calibrated against real internal-mobility outcomes.
+- **No real login:** switching between Employee, Manager and HR is for demonstration; there is no production authentication or role-based access control.
+- **Tests cover the logic, not the screens:** the rules, privacy queries and database rebuild are tested automatically; the Streamlit screens are checked by hand.
+- **Demo data is temporary:** refreshing the page or a restart of the hosting service starts a fresh copy of the seeded data.
+
+## Technical details
+
+Built with Python, pandas, SQL, SQLite and Streamlit.
 
 <details>
-<summary>Full feature walkthrough for the Employee, Manager, and HR workspaces</summary>
+<summary>Skill matching and readiness rules</summary>
 
-### Employee: Skills, Career Exploration, and Learning
-
-The Employee workspace helps people understand where they are today and what they may need to develop for a future role.
-
-In **My Skills**, employees can review their current role, recorded skills, and proficiency levels.
-
-My Skills lists only what is recorded; it never fills in a missing skill with a zero.
-
-In **Career Exploration**, the system compares an employee's skill profile with a target role's requirements and shows:
-
-- Overall Skill Match
-- Skills that already meet the role requirement
-- Recorded skill gaps
-- Skills that are not recorded yet, labeled `Not recorded` rather than treated as a missing capability
-- Internal learning options for relevant gaps
-
-Employees can also save roles they are interested in.
-
-A saved career interest is `Private` by default. Employees can choose to make it `Visible to opening managers`.
-
-In the current prototype, that interest appears in staffing only when the manager is responsible for an **open requisition** for the exact target role.
-
-The **Learning Catalog** brings internal training programs together so employees can see what each course teaches, the proficiency level it can support, and any prerequisites.
-
-### Manager: Internal Staffing Decision Support
-
-The Manager workspace does not select candidates or produce a final ranking.
-
-Visible candidates are listed in order of current Skill Match (ties are broken by fewer priority gaps, then fewer significant gaps) so the list is easy to read. That order is not a recommendation: the readiness label and the staffing route carry the meaning, and the decision stays with the manager.
-
-Its purpose is to help answer a narrower question:
-
-> Should this staffing need be explored through internal mobility first?
-
-A manager's `open` and `paused` requisitions are both visible, but internal candidate search is disabled for a paused requisition until it becomes `open` again.
-
-For employees who chose to share their interest in the role, WorkforceIQ evaluates:
-
-- Skill Match
-- Skill-profile evidence coverage
-- Significant gaps
-- Priority gaps
-
-#### Evidence Coverage
-
-Evidence coverage measures how much of the required role-skill profile is actually recorded for the employee:
-
-```text
-number of required skills with a record
----------------------------------------
-total number of required skills
-```
-
-Coverage is not weighted by skill importance.
-
-#### Internal Readiness
-
-The prototype uses the following heuristic defaults:
-
-| Readiness | Evidence coverage | Skill Match | Priority gaps | Significant gaps |
-|---|---:|---:|---:|---:|
-| Ready Now | ≥ 70% | ≥ 80% | 0 | ≤ 1 |
-| Train First | ≥ 70% | ≥ 60% | ≤ 1 | No explicit cap |
-| Larger development gap | ≥ 70% | Does not meet the Ready Now or Train First criteria | — | — |
-| Not assessed | < 70% | Not assessed | — | — |
-
-A candidate may still fall into `Larger development gap` even when the Skill Match reaches one of the score thresholds if other readiness conditions are not met, such as having too many priority gaps.
-
-These thresholds are **prototype-level heuristics**. They have not been validated or calibrated against real internal-mobility outcomes.
-
-#### Staffing Route
-
-The manager sees one of three staffing routes.
-
-**Internal Mobility**
-
-Suggested when at least one visible candidate is `Ready Now` or `Train First`.
-
-**More Evidence Needed**
-
-Suggested when no candidate currently qualifies for internal mobility, but at least one candidate has insufficient skill evidence for a reliable readiness assessment.
-
-This prevents missing data from being treated as evidence that the employee is not a fit.
-
-**External Hire**
-
-Suggested when all visible candidates have sufficient skill evidence and none is `Ready Now` or `Train First`.
-
-It is also suggested when no employee has shared a visible career interest in that exact role.
-
-### HR: Workforce Planning and Learning Coverage
-
-The HR workspace stays at the aggregate level rather than evaluating individual candidates.
-
-It focuses on two questions.
-
-#### Where could future workforce gaps appear?
-
-For each role, the system compares current and planned headcount:
-
-```text
-Workforce Gap = max(Planned Headcount - Current Headcount, 0)
-```
-
-HR can adjust planned headcount to explore how future staffing needs change.
-
-#### Can current internal learning build the capabilities our roles require?
-
-WorkforceIQ checks the skill requirements of **every existing role** against the internal training catalog:
-
-```text
-All Roles
-→ Role Skill Requirements
-→ Internal Training Coverage
-→ Capability Development Priorities
-```
-
-For each required skill, the system looks at the **highest training outcome level** currently available in the internal catalog.
-
-If that level is still below what any role requires, the skill is surfaced as a capability development priority, together with the roles it affects.
-
-This check is independent of the headcount scenario: it reflects a structural property of the learning catalog rather than a single planning period. Combined with the workforce-gap view, HR can see both:
-
-> Which roles may become short-staffed?
-
-and:
-
-> Which role capabilities can our current learning system not build at all?
-
-</details>
-
-## Skill Matching Logic
-
-WorkforceIQ uses a transparent, rule-based matching approach.
-
-For each skill:
+**Skill Match.** For each required skill:
 
 ```text
 min(employee proficiency / required proficiency, 1)
 ```
 
-Overall Skill Match:
+Overall Skill Match, weighted by each skill's importance to the role:
 
 ```text
 Σ(importance × skill match)
@@ -262,90 +120,59 @@ Overall Skill Match:
 Σ(importance)
 ```
 
-Two principles are especially important.
+A skill with no record gets 0 match credit in this calculation, but the interface labels it `Not recorded` and does not count it as a gap.
 
-### Overperformance does not cancel another gap
+**Evidence coverage** is the share of a role's required skills that have a record for the employee (not weighted by importance).
 
-Exceeding the requirement in one skill does not compensate for missing capability elsewhere.
+**Internal readiness** (prototype defaults in `app/readiness.py`):
 
-Each skill's contribution is capped at 100%.
+| Readiness | Evidence coverage | Skill Match | Priority gaps | Significant gaps |
+|---|---:|---:|---:|---:|
+| Ready Now | ≥ 70% | ≥ 80% | 0 | ≤ 1 |
+| Train First | ≥ 70% | ≥ 60% | ≤ 1 | No cap |
+| Larger development gap | ≥ 70% | Does not meet the rows above | — | — |
+| Not assessed | < 70% | Not assessed | — | — |
 
-### Lack of evidence is not evidence of lack
+**Staffing route** for an opening:
 
-If an employee has no record for a required skill, the calculation gives that skill 0 demonstrated match credit.
+- **Internal Mobility:** at least one visible candidate is `Ready Now` or `Train First`.
+- **More Evidence Needed:** no candidate qualifies, but at least one is `Not assessed`.
+- **External Hire:** every visible candidate was assessed and none qualifies, or no employee has shared interest in that role.
 
-The UI still shows `Not recorded`.
+Visible candidates are listed by Skill Match, then fewer priority gaps, then fewer significant gaps. A manager's paused openings are listed, but candidate search is disabled until the opening is open again.
 
-This distinction matters because missing evidence and evidence of low proficiency are not the same thing.
+</details>
 
-## Human-Centered Design Principles
+<details>
+<summary>Privacy and access model</summary>
 
-WorkforceIQ is designed to support human judgment rather than replace it.
+A career interest appears in a manager's candidate list only when all of these are true (enforced in the SQL query in `app/db.py` and covered by tests):
 
-**Employee agency**  
-Employees decide whether their saved career interests are visible to opening managers.
+- the employee set its visibility to `opening_managers`
+- the target role exactly matches the opening's role
+- the opening belongs to the current manager
+- the opening's status is `open`
+- the employee is not the opening's hiring manager
 
-**Data minimization**  
-Managers only see career interests relevant to staffing needs they are responsible for and that employees explicitly chose to share. HR workforce planning stays at the aggregate level.
+This is a prototype: the workspace switcher is for demonstration and there is no production authentication or role-based access control.
 
-**Explainability**  
-Skill Match, skill gaps, readiness, and staffing routes come from explicit rule-based logic that can be inspected and discussed.
+</details>
 
-**Human oversight**  
-The system does not automatically promote, transfer, hire, reject, or terminate employees. Final decisions remain with people.
+<details>
+<summary>Workforce planning calculations</summary>
 
-**Evidence-aware decisions**  
-When information is incomplete, the system can return `Not assessed` or `More Evidence Needed` instead of producing a falsely precise judgment.
+For each role, using the planned headcount HR enters:
 
-## Current Privacy and Access Model
+```text
+Workforce Gap = max(Planned Headcount - Current Headcount, 0)
+```
 
-The current visibility rules are implemented through:
+For learning coverage, the app checks the requirements of **every** role against the training catalog. For each required skill it finds the highest level any internal course teaches; if that is below what a role requires, the skill is listed as a capability gap with the roles it affects. This check does not depend on the headcount scenario. The logic is in `app/planning.py`.
 
-- Database queries
-- Application logic
-- UI flow
+</details>
 
-For a career interest to appear in the manager candidate list, all of the following must be true:
-
-- The employee set visibility to `opening_managers`
-- The target role exactly matches the opening's role
-- The opening belongs to the current manager
-- The opening status is `open`
-- The employee is not the opening's hiring manager
-
-This is still a prototype.
-
-It does **not** yet implement production-grade authentication, authorization, or role-based access control.
-
-The Employee, Manager, and HR workspace switcher in the sidebar is therefore for development and demonstration only.
-
-## Technical Architecture
-
-Main technologies:
-
-- Python
-- Pandas
-- SQL
-- SQLite
-- Streamlit
-
-Main data entities include:
-
-- Departments
-- Roles
-- Skills
-- Employees
-- Employee skills
-- Role skill requirements
-- Career interests
-- Career paths
-- Job openings
-- Training programs
-- Training prerequisites
-- Training records
-- Future workforce demand
-
-### Data model
+<details>
+<summary>Data model</summary>
 
 The schema has 14 tables. This overview is generated from `database/schema.sql`:
 
@@ -373,9 +200,48 @@ erDiagram
     roles ||--o{ future_demand : "role_id"
 ```
 
-Column-level diagrams for each area are in [`docs/er-diagram.md`](docs/er-diagram.md). [`docs/schema.dbml`](docs/schema.dbml) can be pasted into [dbdiagram.io](https://dbdiagram.io) for a polished image. Regenerate both with `python database/generate_er_diagram.py`; a test fails if they fall out of date.
+Column-level diagrams are in [`docs/er-diagram.md`](docs/er-diagram.md), and [`docs/schema.dbml`](docs/schema.dbml) can be pasted into [dbdiagram.io](https://dbdiagram.io). Regenerate both with `python database/generate_er_diagram.py`; a test fails if they fall out of date.
 
-### Project structure
+</details>
+
+<details>
+<summary>Run it yourself, database rebuild and per-visitor copies</summary>
+
+```bash
+pip install -r requirements.txt
+python database/rebuild_db.py            # build the demo database from schema + seed files
+streamlit run app/app.py
+python -m unittest discover -s tests     # run the automated tests
+```
+
+The SQLite database is not committed. If `database/workforceiq.db` is missing, the app builds it from the schema and seed files on first start.
+
+- `python database/rebuild_db.py --dry-run` validates a rebuild without replacing the database.
+- `python database/rebuild_db.py --keep-interests` rebuilds while keeping saved career interests.
+- An existing database is backed up before it is replaced.
+- Each rebuild checks database integrity, foreign keys, key schema constraints and seed-data consistency.
+
+The rebuilt database is a read-only baseline: the running app never writes to it. Each visitor session gets its own temporary copy, so saving a career interest in one browser tab does not affect anyone else. Copies are deleted after about a day of inactivity.
+
+</details>
+
+<details>
+<summary>Automated tests</summary>
+
+| Area | What is checked |
+|---|---|
+| Skill Match and gaps | Weighted match, the 100% cap per skill, gap and priority-gap counts, and missing records scored as 0 without being counted as gaps, checked against a small database whose answers are worked out by hand |
+| Manager visibility | Only interests the employee made visible, in the exact role of an open opening owned by that manager; private interests, other roles, paused openings and the hiring manager are excluded |
+| Readiness and staffing route | Every threshold at its boundary and each staffing route |
+| Workforce planning | `max(planned − current, 0)` and which required skills the catalog cannot cover |
+| Per-visitor database | Separate copies per visitor, private saves and resets, and cleanup of old copies |
+| Seeded demo | The database rebuilds with every integrity check passing, and the demo story (River Hsu → Riley Chang → `Internal Mobility` / `Train First`) still holds |
+| Documentation | The ER diagrams match `schema.sql` |
+
+</details>
+
+<details>
+<summary>Project structure</summary>
 
 ```text
 WorkforceIQ/
@@ -384,144 +250,20 @@ WorkforceIQ/
 │   ├── db.py              # SQL queries and per-visitor database copies
 │   ├── readiness.py       # evidence coverage, internal readiness, staffing route
 │   ├── planning.py        # workforce gap and capability-coverage calculations
-│   └── views/
-│
+│   └── views/             # Employee, Manager and HR screens
 ├── database/
 │   ├── schema.sql
 │   ├── seed_*.sql
 │   ├── rebuild_db.py
 │   └── generate_er_diagram.py
-│
 ├── tests/
-│
 ├── docs/
 │   ├── er-diagram.md
 │   ├── schema.dbml
 │   └── images/
-│       ├── employee-career-overview.png
-│       ├── employee-career-detail.png
-│       ├── manager-opening.png
-│       ├── manager-staffing-decision.png
-│       ├── hr-workforce-demand.png
-│       └── hr-capability-gaps.png
-│
-├── .github/workflows/tests.yml
 ├── SQL/
+├── .github/workflows/tests.yml
 └── requirements.txt
 ```
 
-## Reproducible Database
-
-The generated SQLite database is not committed to the repository.
-
-If `database/workforceiq.db` is missing, the application automatically bootstraps a fresh demo database from the committed schema and seed files. This allows a fresh portfolio deployment to start without committing a writable SQLite database.
-
-The database can also be rebuilt manually:
-
-```bash
-python database/rebuild_db.py
-```
-
-To validate the rebuild without replacing the existing database:
-
-```bash
-python database/rebuild_db.py --dry-run
-```
-
-To rebuild while preserving existing saved career interests:
-
-```bash
-python database/rebuild_db.py --keep-interests
-```
-
-If an existing database is present, the rebuild process creates a backup before replacing it.
-
-The rebuild script also checks:
-
-- Database integrity
-- Foreign-key consistency
-- Key schema constraints
-- Seed-data consistency
-
-### One private copy per visitor
-
-`database/workforceiq.db` is a read-only baseline: the running app never writes to it. Each visitor session works on its own temporary copy, so saving a career interest or changing its visibility in one browser tab does not affect anyone else.
-
-**Demo controls → Reset demo data** restores the seeded career interests and visibility settings in the visitor's own copy only. Copies live in the system temp folder and are removed automatically after about a day of inactivity.
-
-## Why Rule-Based Instead of Machine Learning?
-
-WorkforceIQ currently uses rule-based decision logic rather than predictive machine learning.
-
-This is not because machine learning is inherently unsuitable for workforce analytics.
-
-The current project uses synthetic workforce data and does not have real historical outcomes such as:
-
-- Internal-mobility success
-- Hiring outcomes
-- Longitudinal employee performance
-
-Without those outcomes, there are no reliable prediction targets or validation labels.
-
-A predictive model could still be built, but there would be no sound way to determine whether it actually predicts employee readiness or successful internal mobility.
-
-For this prototype, transparent rules that can be directly inspected are therefore more appropriate for the available evidence.
-
-If sufficiently large, properly governed historical data becomes available in the future, rule-based, statistical, and machine-learning approaches could then be compared empirically.
-
-## Testing
-
-The decision logic is covered by automated tests that run on every push (see the badge at the top):
-
-```bash
-python -m unittest discover -s tests
-```
-
-| Area | What is checked |
-|---|---|
-| Skill Match and gaps | Weighted match, the 100% cap per skill, gap and priority-gap counts, and missing records scored as 0 without being counted as gaps. Checked against a small database whose answers are worked out by hand. |
-| Manager visibility | Only interests that the employee made visible, in the exact role of an open requisition owned by the requesting manager, are shown. Private interests, other roles, paused openings and the hiring manager are excluded. |
-| Readiness and staffing route | Every threshold at its boundary (70% evidence coverage, 80% and 60% Skill Match, priority and significant gap limits) and each staffing route. |
-| Workforce planning | `max(planned − current, 0)` and which required skills the internal catalog cannot cover. |
-| Per-visitor database | Visitors get separate copies, saves and resets stay private, and stale copies are cleaned up. |
-| Seeded demo | The database rebuilds with every integrity check passing, and the README walkthrough (River Hsu → Riley Chang → `Internal Mobility` / `Train First`) still holds. |
-| Documentation | The ER diagrams match `schema.sql`. |
-
-The Streamlit screens themselves are not covered by automated tests; they are verified through manual QA.
-
-## Limitations
-
-WorkforceIQ is currently a prototype.
-
-Its main limitations are:
-
-- **Synthetic data:** The workforce data is synthetic and cannot be used to infer real organizational talent patterns or workforce outcomes.
-- **Heuristic thresholds:** Readiness thresholds have not been validated or calibrated against real mobility outcomes.
-- **No production authentication or RBAC:** Workspace visibility is currently controlled through query logic, application logic, and UI flow.
-- **No outcome validation:** There are no real mobility, hiring, or performance labels with which to test predictive validity.
-- **Tests cover the logic, not the interface:** The decision rules, visibility rules, per-visitor databases and database rebuild are covered by automated tests (see [Testing](#testing)). The Streamlit screens are verified through manual QA.
-- **Demo data is temporary:** Each visitor's private copy is tied to the browser session. Refreshing the page, or the hosting service restarting the app, starts a new copy from the seeded data, which works like an automatic reset.
-- **Prototype deployment:** The system is intended as a local and portfolio prototype rather than a production HR platform.
-
-## Project Scope
-
-WorkforceIQ currently focuses on:
-
-- Workforce data integration
-- Skills intelligence
-- Career mobility
-- Internal staffing
-- Workforce planning
-- Learning coverage
-- Explainable decision support
-- Human-in-the-loop decision support
-
-It deliberately does not attempt to become a full HRIS or add predictive features that cannot be validated with the available data.
-
-The core question of the project is not:
-
-> "Can we add more AI?"
-
-It is:
-
-> **Given the evidence available, what transparent and explainable decision support can the system provide without making claims that go beyond what the data can support?**
+</details>

@@ -4,356 +4,177 @@
 
 [![Tests](https://github.com/harper-chen/WorkforceIQ/actions/workflows/tests.yml/badge.svg)](https://github.com/harper-chen/WorkforceIQ/actions/workflows/tests.yml)
 
-**WorkforceIQ 是一個以人為中心的 workforce decision-support system，整合員工技能、職涯意向、內部學習資源、職務需求與未來人力需求。**
+一個人力決策輔助系統，把員工的技能、職涯意向與培訓，和職缺及未來人力規劃連結起來，讓組織在對外招募之前，先從內部培養人才，同時不把決定權從人的手中拿走。
+
+**[試用線上 Demo →](https://workforceiq-demo.streamlit.app/)** 不需要註冊。先從 River Hsu（員工）開始，再看 Riley Chang（主管）；詳見[試用 Demo](#試用-demo)。
 
 <p align="center">
   <a href="https://workforceiq-demo.streamlit.app/"><img src="docs/images/manager-staffing-decision.png" alt="WorkforceIQ manager staffing decision view" width="900"></a>
 </p>
 
-<p align="center"><em>Manager 視角：可見的內部候選人，以及依 evidence 產生的 staffing route 與 readiness label。</em></p>
+<p align="center"><em>主管畫面：一位選擇分享職涯意向的員工，附上準備度標籤與建議的補人路徑。</em></p>
 
-**[試用線上 Demo →](https://workforceiq-demo.streamlit.app/)** 先以 River Hsu（Employee），再以 Riley Chang（Manager）體驗。見 [Demo Scenario](#demo-scenario)。
+## 問題
 
-它主要協助三種角色回答彼此相關、但不同層次的問題：
+這個想法來自我在一家培訓制度完善的大型電子公司實習時的觀察。我注意到三個互相脫節的地方：
 
-- **Employee：** 我下一步可以往哪些職務發展？
-- **Manager：** 這個 staffing need 是否有機會先透過 internal mobility 解決？
-- **HR / Workforce Planning：** 未來哪些職務可能缺人，而公司目前的 learning resources 是否足以支撐這些能力需求？
+1. **培訓看不到會通往哪裡。** 員工上課、提升技能，但課程目錄回答的是「這堂課會教我什麼？」，而不是「這能幫我準備哪個職位？我離那個職位還有多遠？」
+2. **內部人才很容易被忽略。** 當技能、職涯意向和職缺分散在不同地方，公司可能會對外招募，即使內部已經有員工只要經過針對性培訓就能勝任。
+3. **分享職涯意向讓人有顧慮。** 如果主管看得到所有內容，想探索其他團隊的員工可能就不敢使用職涯工具。
 
-這個系統不會替企業自動做升遷、轉調、錄用或解僱決策，而是把原本分散的 workforce data 連接起來，提供透明、可解釋且可行動的 decision support。
+## 這個專案改變了什麼
 
-WorkforceIQ 目前使用 **synthetic enterprise workforce data**，以 Python、Pandas、SQL、SQLite 與 Streamlit 建構。
+| | 以前 | 使用 WorkforceIQ |
+|---|---|---|
+| **員工** | 知道課程會教什麼，但不知道它能帶自己去哪裡 | 看到自己已記錄的技能與目標職位的符合程度、還有哪些差距，以及哪些內部課程能補上 |
+| **主管** | 補人時不知道內部有誰有興趣、又夠接近 | 看到選擇向該職缺分享意向的員工，每人附上準備度標籤，以及建議路徑：內部調動、需要更多資料，或對外招募 |
+| **HR** | 人力規劃和培訓規劃分開進行 | 看到哪些職位將會缺人，以及哪些必要技能是現有培訓目錄完全無法培養的 |
+| **隱私** | 對其他職位的興趣不是完全隱藏，就是完全曝光 | 職涯意向預設為私人；只有員工選擇公開，且符合該主管負責的開放職缺時，主管才看得到 |
 
-## Why WorkforceIQ?
+這個 app 從不升遷、調動、錄用或拒絕任何人。它把分散的資訊整合起來並說明建議的理由；做決定的是人。
 
-企業內與人才相關的資訊通常分散在不同系統中，例如：
+## 我做了什麼
 
-- Employee skill profiles
-- Role requirements
-- Career interests
-- Internal training programs
-- Job openings
-- Future headcount plans
+WorkforceIQ 從資料模型到介面，都是我獨立設計與開發的：
 
-這些資料各自有價值，但很多 workforce decisions 真正依賴的是它們之間的關係。
+- **14 張資料表的關聯式資料庫**（員工、技能、職位、培訓、職涯意向、職缺、未來人力需求），填入 100 位員工、16 個職位、98 項技能和 67 個培訓課程的模擬資料，每次重建都會做完整性檢查。
+- **透明的配對與準備度規則**，用 SQL 和 Python 撰寫，並和介面分開，讓每一條規則都能單獨測試。
+- **三個 Streamlit 工作區**，分別給員工、主管和 HR，隱私規則直接寫在資料庫查詢裡。
+- **99 個自動化測試**，每次 push 都會在 Python 3.11 和 3.12 上執行，包含用人工算好答案的配對計算範例，以及每個準備度門檻的邊界值。
 
-例如，只知道某個 role 未來需要增加 headcount 並不夠。Manager 還需要知道是否有感興趣的內部員工已經接近 role requirements；HR 也需要知道現有 learning catalog 是否真的能培養未來缺口職務所需要的能力。
+## 運作方式
 
-WorkforceIQ 將這些資訊整合到同一個 decision-support workflow 中。
+Demo 用同一個故事串起三個工作區。
 
-### 這個想法從哪裡來
-
-這個想法來自我在一家大型電子公司實習時觀察到的現象：該公司有很完善的訓練課程，員工也很多；但員工透過課程提升能力後，往往只有自己知道，對職涯發展幫助不大。公司在員工訓練上投入很多資源，員工卻常常不知道修完課之後可以往哪些職務發展。Learning catalog 回答的是「這門課會教我什麼」，卻沒有回答「這門課能讓我準備好哪個職務，我現在離它還差多少」。
-
-這同時也是人力配置的問題。當 training、skills、career interests 與 job openings 沒有連在一起時，組織可能持續向外招募，即使內部其實有員工經過針對性的培養就能勝任。清楚的 internal career pathways 不只是員工福利，也可以是 workforce strategy 的一部分。
-
-把這些資訊連起來之後，會出現第二個問題：manager 是否應該看到所有員工的 career interests？一位私下探索其他職務的員工，如果擔心被主管看到，可能就不敢使用這類 career-planning 工具。因此 career interests **預設為 private**；只有在員工主動公開，**而且**該 interest 與該 manager 名下某個 open requisition 的 role 完全相符時，manager 才看得到。
-
-所以 WorkforceIQ 同時嘗試三件事：讓員工看見 learning 如何通往職務；讓 manager 與 HR 在預設外部招募之前先考慮內部人才；並且只揭露完成決策所需的最少資訊。
-
-## Demo Scenario
-
-若要完整體驗 prototype，建議依照以下流程：
-
-1. **Employee：** 先以 **River Hsu — Business Analyst** 進入 **My Skills**，查看目前已記錄的 skill profile。
-2. 進入 **Career Exploration**，選擇 **Systems Analyst**，查看 Skill Match、skill gaps 與 learning options。
-3. 切換到 **Manager**，選擇 **Riley Chang**，查看 open 的 **Systems Analyst** requisition，以及 River 的 internal readiness。
-4. 最後進入 **HR / Workforce Planning**，查看 Systems Analyst 如何出現在未來 workforce demand 與 capability-gap planning 中。
-
-這條 walkthrough 將 Employee、Manager 與 HR 三個視角串在同一個 workforce scenario 中。
-
-## Screenshots
-
-<details>
-<summary>完整截圖與說明</summary>
-
-### Employee — Career Exploration
-
-River Hsu 從 Business Analyst 出發，探索 Systems Analyst。Overview 顯示推薦職涯選項與目前的 skill fit。
+**1. 員工探索下一個職位。** 商業分析師 River Hsu 打開 Career Exploration，看到推薦的下一步職位（從他目前職位出發的正式職涯路徑排在前面），以及他已記錄的技能與每個職位的符合程度。
 
 ![Career Exploration Overview](docs/images/employee-career-overview.png)
 
-Role-detail view 會把 recorded gaps 與 missing evidence 分開呈現，並把 development needs 連結到可用的 internal learning options。
+**2. 他看到差距，以及如何補上。** 詳細頁面把真正的技能差距，和只是尚未記錄的技能分開，並把每個差距連到內部課程（含先修條件）。他已把 Systems Analyst 存為職涯意向，並設為向職缺主管公開；他的另一個意向 BI Analyst 則維持私人。
 
 ![Career Exploration Detail](docs/images/employee-career-detail.png)
 
-### Manager — Internal Staffing
-
-Riley Chang 檢視一個 open 的 Systems Analyst requisition。
+**3. 主管檢視職缺。** Riley Chang 有一個開放中的 Systems Analyst 職缺。
 
 ![Manager Opening](docs/images/manager-opening.png)
 
-WorkforceIQ 將 River Hsu 顯示為可見的 internal candidate，並根據目前已記錄的 evidence，建議 `Internal Mobility` / `Train First` pathway。
+**4. 系統建議先從內部找。** 因為 River 分享了意向，Riley 看到他的準備度是 `Train First`，建議路徑是 `Internal Mobility`。決定權仍在 Riley 手上。
 
 ![Manager Staffing Decision](docs/images/manager-staffing-decision.png)
 
-### HR — Workforce Planning
-
-HR 比較 Current Headcount 與 Planned Headcount，以辨識未來 workforce gaps。
+**5. HR 看到整體情況。** HR 調整規劃人數，看出哪些職位將會缺人。
 
 ![Workforce Demand](docs/images/hr-workforce-demand.png)
 
-接著，系統會標示目前 internal learning catalog 尚無法充分支撐的 capability needs。
+**6. HR 檢查培訓能否補上差距。** 系統列出沒有任何內部課程能教到職位所需程度的技能，以及受影響的職位。
 
 ![Capability Gaps](docs/images/hr-capability-gaps.png)
 
-</details>
+## 設計選擇
 
-## Quick Start
+每一項設計都來自我想讓系統避開的一個風險：
 
-```bash
-pip install -r requirements.txt
-python database/rebuild_db.py      # 從 schema 與 seed files 建立 demo database
-streamlit run app/app.py
-python -m unittest discover -s tests   # 選用：執行自動化測試
-```
+- **沒有資料不等於能力不足。** 技能沒有記錄時，畫面顯示 `Not recorded`，而不是當成差距。當記錄太少而無法判斷（低於職位必要技能的 70%），準備度會是 `Not assessed`，路徑變成 `More Evidence Needed`，而不是建議對外招募。
+- **一項強項不能掩蓋另一項差距。** 每項技能最多只算到該要求的 100%，所以某項技能特別強，也不會抵銷另一項技能的不足。
+- **預設保護隱私，分享由員工決定。** 職涯意向預設為私人。主管只看得到員工選擇分享的內容，而且只限於自己負責的開放職缺的同一職位；HR 規劃只看彙總資料。
+- **不用排名替人做決定。** 候選人清單的排序只是為了方便閱讀，真正有意義的是準備度標籤和說明，系統不會替人做決定。
+- **刻意選擇規則而不是機器學習。** 模擬資料沒有真實的結果（例如成功的內部調動）可以用來訓練或驗證模型。在現有證據下，任何人都能讀懂、質疑的規則比較誠實。
 
-## What the System Supports
+## 試用 Demo
+
+1. 打開**[線上 Demo](https://workforceiq-demo.streamlit.app/)**，選擇 **Employee** 工作區和 **River Hsu**，在 **My Skills** 檢視他的技能。
+2. 打開 **Career Exploration**，選擇 **Systems Analyst**，查看符合程度、差距和建議課程。
+3. 切換到 **Manager** 工作區，選擇 **Riley Chang**，檢視開放中的 Systems Analyst 職缺和 River 的準備度。
+4. 切換到 **HR / Workforce Planning**，修改幾個規劃人數，並查看能力差距。
+
+每位訪客都使用自己的資料庫副本，所以你的變更不會影響其他人。**Demo controls → Reset demo data** 可以還原到初始狀態。
+
+## 限制
+
+WorkforceIQ 是原型。
+
+- **模擬資料：** 人力資料是虛構的，無法呈現真實組織的情況。
+- **門檻未經驗證：** 準備度門檻是合理的預設值，尚未用真實的內部調動結果校準。
+- **沒有真正的登入：** 在員工、主管、HR 之間切換只是為了展示，沒有正式的身分驗證或角色權限控管。
+- **測試涵蓋邏輯，不涵蓋畫面：** 規則、隱私查詢和資料庫重建都有自動化測試；Streamlit 畫面是人工檢查。
+- **Demo 資料是暫時的：** 重新整理頁面或主機重啟時，會從初始資料重新建立副本。
+
+## 技術細節
+
+使用 Python、pandas、SQL、SQLite 和 Streamlit 打造。
 
 <details>
-<summary>Employee、Manager、HR 三個 workspace 的完整功能說明</summary>
+<summary>技能配對與準備度規則</summary>
 
-### Employee：Skills、Career Exploration 與 Learning
-
-Employee workspace 幫助員工了解目前的能力狀態、探索未來可能的職涯方向，以及找到可以補強 skill gap 的內部學習資源。
-
-在 **My Skills** 中，員工可以查看：
-
-- Current role
-- 已記錄的 skills
-- Proficiency levels
-
-My Skills 只列出已記錄的 skills，不會把缺少的 skill 補成 0。
-
-在 **Career Exploration** 中，系統會比較員工目前的 skill profile 與 target role requirements，並顯示：
-
-- Overall Skill Match
-- 已達到 role requirement 的 skills
-- Recorded skill gaps
-- 尚未記錄的 skills，標示為 `Not recorded`，而不是直接當成缺少該能力
-- 對應的 internal learning options
-
-員工也可以儲存有興趣的 career role。
-
-Career interest 預設為 `Private`。員工可以主動選擇 `Visible to opening managers`。
-
-在目前的 prototype 中，只有負責該 exact target role 之 **open requisition** 的 manager，才會在 staffing view 中看到這項 interest。
-
-**Learning Catalog** 則整合內部 training programs，讓員工查看各課程涵蓋的 skills、可達到的 proficiency level，以及 training prerequisites。
-
-### Manager：Internal Staffing Decision Support
-
-Manager workspace 不會替 manager 選出候選人，也不會產生最終排名。
-
-可見的候選人會依目前的 Skill Match 由高到低列出（相同時，依 priority gaps 較少、再依 significant gaps 較少排序），目的只是方便閱讀。這個順序不是建議：真正有意義的是 readiness label 與 staffing route，最終決定仍由 manager 負責。
-
-它主要協助回答：
-
-> 這個 staffing need 是否值得優先透過 internal mobility 處理？
-
-Manager 名下 `open` 與 `paused` 的 requisitions 都會列出，但 `paused` requisition 在恢復為 `open` 之前，不提供 internal candidate search。
-
-對於主動把 career interest 設為可見的員工，WorkforceIQ 會評估：
-
-- Skill Match
-- Skill-profile evidence coverage
-- Significant gaps
-- Priority gaps
-
-#### Evidence Coverage
-
-Evidence coverage 代表員工在該 target role 所需技能中，有多少技能已有紀錄：
+**Skill Match。** 每項必要技能：
 
 ```text
-有紀錄的必要技能數
-------------------
-必要技能總數
+min(員工程度 / 要求程度, 1)
 ```
 
-Coverage 不使用 skill importance 加權。
+整體 Skill Match，依每項技能對職位的重要性加權：
 
-#### Internal Readiness
+```text
+Σ(重要性 × 單項符合度)
+-----------------------
+Σ(重要性)
+```
 
-目前 prototype 使用以下 heuristic defaults：
+沒有記錄的技能在計算中得 0 分，但介面會標示為 `Not recorded`，不計入差距。
 
-| Readiness | Evidence coverage | Skill Match | Priority gaps | Significant gaps |
+**證據覆蓋率**是員工有記錄的必要技能占職位必要技能的比例（不依重要性加權）。
+
+**內部準備度**（原型預設值，見 `app/readiness.py`）：
+
+| 準備度 | 證據覆蓋率 | Skill Match | 優先差距 | 顯著差距 |
 |---|---:|---:|---:|---:|
 | Ready Now | ≥ 70% | ≥ 80% | 0 | ≤ 1 |
-| Train First | ≥ 70% | ≥ 60% | ≤ 1 | No explicit cap |
-| Larger development gap | ≥ 70% | 未符合 Ready Now 或 Train First 條件 | — | — |
-| Not assessed | < 70% | Not assessed | — | — |
+| Train First | ≥ 70% | ≥ 60% | ≤ 1 | 無上限 |
+| Larger development gap | ≥ 70% | 不符合以上條件 | — | — |
+| Not assessed | < 70% | 不評估 | — | — |
 
-即使 Skill Match 達到其中一項分數門檻，若其他 readiness 條件未滿足，例如 priority gaps 過多，候選人仍可能被歸為 `Larger development gap`。
+**職缺的補人路徑：**
 
-這些門檻屬於 **prototype-level heuristic defaults**，目前尚未以真實 internal-mobility outcomes 進行驗證或 calibration。
+- **Internal Mobility：** 至少一位可見候選人是 `Ready Now` 或 `Train First`。
+- **More Evidence Needed：** 沒有候選人符合，但至少一位是 `Not assessed`。
+- **External Hire：** 所有可見候選人都已評估且無人符合，或沒有員工對該職位分享意向。
 
-#### Staffing Route
-
-Manager 最後會看到三種 staffing route。
-
-**Internal Mobility**
-
-當至少有一位可見候選人達到 `Ready Now` 或 `Train First` 時，系統會建議優先考慮 internal mobility。
-
-**More Evidence Needed**
-
-如果目前沒有候選人達到 `Ready Now` 或 `Train First`，但至少有一位候選人的 skill evidence 不足以完成可靠的 readiness assessment，系統會建議 `More Evidence Needed`。
-
-這能避免把「缺少資料」直接解讀成「員工不適合」。
-
-**External Hire**
-
-只有在所有可見候選人都有足夠 skill evidence，且沒有任何候選人達到 `Ready Now` 或 `Train First` 時，系統才會建議 `External Hire`。
-
-如果沒有任何員工對該 exact role 表達可見的 career interest，也會建議 `External Hire`。
-
-### HR：Workforce Planning 與 Learning Coverage
-
-HR workspace 維持在 aggregate level，而不是進行個別 candidate evaluation。
-
-它主要回答兩個問題。
-
-#### 哪些職務未來可能出現 workforce gap？
-
-系統比較 Current Headcount 與 Planned Headcount，並計算：
-
-```text
-Workforce Gap = max(Planned Headcount - Current Headcount, 0)
-```
-
-HR 可以調整 planned headcount，觀察不同 roles 的未來 staffing needs 如何變化。
-
-#### 現有 internal learning 能否培養各職務所需的能力？
-
-WorkforceIQ 會拿 **所有現有 roles** 的 skill requirements 與 internal training catalog 比對：
-
-```text
-All Roles
-→ Role Skill Requirements
-→ Internal Training Coverage
-→ Capability Development Priorities
-```
-
-對每一項 required skill，系統會找出目前 internal training catalog 可提供的 **最高 training outcome level**。
-
-如果這個 level 仍低於任何 role 所要求的 proficiency level，該 skill 就會被列為 capability development priority，並標示受影響的 roles。
-
-這項檢查不受 headcount scenario 影響：它反映的是 learning catalog 本身的結構性缺口，而不是單一 planning period 的狀況。搭配 workforce gap 的結果，HR 可以同時看到：
-
-> 哪些職務可能缺人？
-
-以及：
-
-> 哪些職務能力是公司目前的 internal learning system 完全培養不出來的？
+可見候選人依 Skill Match 排序，接著是優先差距較少、顯著差距較少者。主管暫停中的職缺會列出，但在重新開放前無法搜尋候選人。
 
 </details>
 
-## Skill Matching Logic
+<details>
+<summary>隱私與存取模型</summary>
 
-WorkforceIQ 使用透明、rule-based 的 matching approach。
+職涯意向只有在以下條件全部成立時，才會出現在主管的候選人清單中（寫在 `app/db.py` 的 SQL 查詢裡，並有測試涵蓋）：
 
-每一項 skill：
+- 員工把可見度設為 `opening_managers`
+- 目標職位與職缺的職位完全相同
+- 職缺屬於目前這位主管
+- 職缺狀態是 `open`
+- 該員工不是職缺的招募主管本人
+
+這是原型：工作區切換只是為了展示，沒有正式的身分驗證或角色權限控管。
+
+</details>
+
+<details>
+<summary>人力規劃計算</summary>
+
+每個職位依 HR 輸入的規劃人數計算：
 
 ```text
-min(employee proficiency / required proficiency, 1)
+人力缺口 = max(規劃人數 - 目前人數, 0)
 ```
 
-整體 Skill Match：
+學習覆蓋檢查會把**所有**職位的需求和培訓目錄比對。系統找出每項必要技能在內部課程中能教到的最高程度；如果低於某職位的要求，就列為能力差距，並列出受影響的職位。這項檢查不受人數情境影響。邏輯在 `app/planning.py`。
 
-```text
-Σ(importance × skill match)
----------------------------
-Σ(importance)
-```
+</details>
 
-其中有兩個重要原則。
+<details>
+<summary>資料模型</summary>
 
-### Overperformance does not cancel another gap
-
-某一項 skill 高於職務要求，不會補償另一項能力不足。
-
-因此，每一項 skill 對整體 match 的貢獻最高為 100%。
-
-### Lack of evidence is not evidence of lack
-
-如果員工沒有某項 required skill 的紀錄，matching calculation 會給予該 skill 0 demonstrated match credit。
-
-但 UI 仍會顯示：
-
-`Not recorded`
-
-這個區分很重要，因為「缺少 evidence」和「有 evidence 顯示能力不足」並不是同一件事。
-
-## Human-Centered Design Principles
-
-WorkforceIQ 的設計目標是支援 human judgment，而不是取代它。
-
-**Employee agency**  
-員工自行決定是否讓自己的 saved career interests 對 opening managers 可見。
-
-**Data minimization**  
-Manager 只會看到與自己負責的 staffing need 有關，而且由員工主動選擇公開的 career interests。HR workforce planning 則維持在 aggregate level。
-
-**Explainability**  
-Skill Match、skill gaps、readiness 與 staffing routes 都來自明確、可追溯的 rule-based logic。
-
-**Human oversight**  
-系統不會自動進行升遷、轉調、錄用、拒絕或解僱。最終決策仍由人負責。
-
-**Evidence-aware decisions**  
-當資料不足時，系統可以輸出 `Not assessed` 或 `More Evidence Needed`，而不是強迫產生看似精確的判斷。
-
-## Current Privacy and Access Model
-
-目前的 visibility rules 是透過以下方式實作：
-
-- Database queries
-- Application logic
-- UI flow
-
-Career interest 要出現在 manager candidate list 中，必須同時符合：
-
-- 員工將 visibility 設為 `opening_managers`
-- Career interest 的 target role 與 opening role 完全相符
-- 該 opening 屬於目前的 manager
-- Opening status 為 `open`
-- 員工不是該 opening 的 hiring manager 本人
-
-目前仍是 prototype。
-
-系統**尚未**實作 production-grade authentication、authorization 或 role-based access control。
-
-因此 sidebar 中的 Employee、Manager 與 HR workspace switcher 僅用於 development 與 demonstration。
-
-## Technical Architecture
-
-主要技術：
-
-- Python
-- Pandas
-- SQL
-- SQLite
-- Streamlit
-
-主要資料實體包括：
-
-- Departments
-- Roles
-- Skills
-- Employees
-- Employee skills
-- Role skill requirements
-- Career interests
-- Career paths
-- Job openings
-- Training programs
-- Training prerequisites
-- Training records
-- Future workforce demand
-
-### Data model
-
-Schema 共有 14 張表。以下 overview 由 `database/schema.sql` 自動產生：
+資料庫共有 14 張表。以下總覽由 `database/schema.sql` 產生：
 
 ```mermaid
 erDiagram
@@ -379,155 +200,70 @@ erDiagram
     roles ||--o{ future_demand : "role_id"
 ```
 
-各區域含欄位的詳細圖在 [`docs/er-diagram.md`](docs/er-diagram.md)；把 [`docs/schema.dbml`](docs/schema.dbml) 貼到 [dbdiagram.io](https://dbdiagram.io) 可以得到較精緻的圖片。兩者都可用 `python database/generate_er_diagram.py` 重新產生；若與 schema 不一致，測試會失敗。
+各區域的欄位圖在 [`docs/er-diagram.md`](docs/er-diagram.md)，[`docs/schema.dbml`](docs/schema.dbml) 可以貼到 [dbdiagram.io](https://dbdiagram.io)。用 `python database/generate_er_diagram.py` 重新產生；如果圖和 schema 不一致，測試會失敗。
 
-### 專案結構
+</details>
+
+<details>
+<summary>自行執行、資料庫重建與訪客專屬副本</summary>
+
+```bash
+pip install -r requirements.txt
+python database/rebuild_db.py            # 從 schema 和種子檔建立 demo 資料庫
+streamlit run app/app.py
+python -m unittest discover -s tests     # 執行自動化測試
+```
+
+SQLite 資料庫沒有放進 repo。如果 `database/workforceiq.db` 不存在，app 第一次啟動時會從 schema 和種子檔自動建立。
+
+- `python database/rebuild_db.py --dry-run`：驗證重建流程，但不取代現有資料庫。
+- `python database/rebuild_db.py --keep-interests`：重建時保留已儲存的職涯意向。
+- 取代現有資料庫前會先備份。
+- 每次重建都會檢查資料庫完整性、外鍵、重要的 schema 限制和種子資料一致性。
+
+重建出的資料庫是唯讀的基準：執行中的 app 從不寫入它。每個訪客 session 都有自己的暫存副本，所以在一個分頁儲存職涯意向，不會影響其他人。閒置約一天後副本會被刪除。
+
+</details>
+
+<details>
+<summary>自動化測試</summary>
+
+| 範圍 | 檢查內容 |
+|---|---|
+| Skill Match 與差距 | 加權符合度、單項 100% 上限、差距與優先差距數量，以及沒有記錄的技能得 0 分但不計入差距；用一個答案以人工算好的小型資料庫驗證 |
+| 主管可見度 | 只顯示員工設為可見、且是該主管負責的開放職缺同一職位的意向；私人意向、其他職位、暫停的職缺和招募主管本人都會被排除 |
+| 準備度與補人路徑 | 每個門檻的邊界值，以及每一種補人路徑 |
+| 人力規劃 | `max(規劃 − 目前, 0)`，以及哪些必要技能是培訓目錄無法涵蓋的 |
+| 訪客專屬資料庫 | 每位訪客的副本各自獨立、儲存和重置互不影響，以及舊副本的清除 |
+| 種子 Demo | 資料庫重建時所有完整性檢查都通過，而且 Demo 故事（River Hsu → Riley Chang → `Internal Mobility` / `Train First`）依然成立 |
+| 文件 | ER 圖與 `schema.sql` 一致 |
+
+</details>
+
+<details>
+<summary>專案結構</summary>
 
 ```text
 WorkforceIQ/
 ├── app/
 │   ├── app.py
-│   ├── db.py              # SQL queries and per-visitor database copies
-│   ├── readiness.py       # evidence coverage, internal readiness, staffing route
-│   ├── planning.py        # workforce gap and capability-coverage calculations
-│   └── views/
-│
+│   ├── db.py              # SQL 查詢與訪客專屬資料庫副本
+│   ├── readiness.py       # 證據覆蓋率、內部準備度、補人路徑
+│   ├── planning.py        # 人力缺口與學習覆蓋計算
+│   └── views/             # 員工、主管、HR 畫面
 ├── database/
 │   ├── schema.sql
 │   ├── seed_*.sql
 │   ├── rebuild_db.py
 │   └── generate_er_diagram.py
-│
 ├── tests/
-│
 ├── docs/
 │   ├── er-diagram.md
 │   ├── schema.dbml
 │   └── images/
-│       ├── employee-career-overview.png
-│       ├── employee-career-detail.png
-│       ├── manager-opening.png
-│       ├── manager-staffing-decision.png
-│       ├── hr-workforce-demand.png
-│       └── hr-capability-gaps.png
-│
-├── .github/workflows/tests.yml
 ├── SQL/
+├── .github/workflows/tests.yml
 └── requirements.txt
 ```
 
-## Reproducible Database
-
-產生後的 SQLite database 不直接 commit 到 repository。
-
-如果 `database/workforceiq.db` 不存在，application 會自動從已 commit 的 schema 與 seed files 建立一份新的 demo database。這讓全新的 portfolio deployment 不需要把可寫入的 SQLite database commit 到 repository，也能直接啟動。
-
-Database 也可以手動重建：
-
-```bash
-python database/rebuild_db.py
-```
-
-如果只想驗證 rebuild process，而不替換現有 database：
-
-```bash
-python database/rebuild_db.py --dry-run
-```
-
-如果希望 rebuild 時保留既有 saved career interests：
-
-```bash
-python database/rebuild_db.py --keep-interests
-```
-
-如果已有既有 database，正式 rebuild 前會先建立 backup。
-
-Rebuild script 也會檢查：
-
-- Database integrity
-- Foreign-key consistency
-- Key schema constraints
-- Seed-data consistency
-
-### 每位訪客一份私人資料庫
-
-`database/workforceiq.db` 是唯讀的 baseline：執行中的 app 不會寫入它。每位訪客的 session 都使用自己的暫時副本，因此在某個瀏覽器分頁儲存 career interest 或更改 visibility，不會影響其他任何人。
-
-**Demo controls → Reset demo data** 只會把該訪客自己副本中的 career interests 與 visibility settings 恢復成 seeded demo state。副本存放在系統暫存資料夾，閒置約一天後會自動清除。
-
-## Why Rule-Based Instead of Machine Learning?
-
-WorkforceIQ 目前使用 rule-based decision logic，而不是 predictive machine learning。
-
-這不是因為 machine learning 本身不適合 workforce analytics。
-
-目前專案使用 synthetic workforce data，而且沒有真實的 historical outcomes，例如：
-
-- Internal-mobility success
-- Hiring outcomes
-- Longitudinal employee performance
-
-因此，目前沒有可靠的 prediction targets 或 validation labels。
-
-即使建立 predictive model，也沒有合理的方法判斷它是否真的能預測 employee readiness 或 successful internal mobility。
-
-在目前 prototype 階段，使用可直接檢查、可討論的透明規則，比建立無法驗證的 predictive model 更符合現有 evidence base。
-
-如果未來能取得足夠、且經過適當 governance 的 real historical data，才有條件進一步比較 rule-based、statistical 與 machine-learning approaches。
-
-## Testing
-
-決策邏輯由自動化測試涵蓋，每次 push 都會執行（見頁首徽章）：
-
-```bash
-python -m unittest discover -s tests
-```
-
-| 範圍 | 檢查內容 |
-|---|---|
-| Skill Match 與 gaps | 加權 match、每項 skill 最高 100% 的上限、gap 與 priority gap 的計數，以及「沒有紀錄」計 0 分但不被當成 gap。以一個答案可手算驗證的小型資料庫檢查。 |
-| Manager visibility | 只有員工主動公開、且 target role 與「該 manager 名下 open requisition」完全相同的 interest 才會顯示。Private interest、其他 role、paused opening 與 hiring manager 本人都被排除。 |
-| Readiness 與 staffing route | 每個門檻的邊界值（70% evidence coverage、80% 與 60% Skill Match、priority 與 significant gap 上限）以及每一種 staffing route。 |
-| Workforce planning | `max(planned − current, 0)`，以及內部 catalog 無法涵蓋哪些 required skills。 |
-| 每位訪客的資料庫 | 訪客各有獨立副本、儲存與重設互不影響、過期副本會被清除。 |
-| Seeded demo | Database 能完整重建且所有 integrity checks 通過，而且 README walkthrough（River Hsu → Riley Chang → `Internal Mobility` / `Train First`）仍然成立。 |
-| 文件 | ER diagrams 與 `schema.sql` 一致。 |
-
-Streamlit 畫面本身沒有自動化測試，目前以 manual QA 驗證。
-
-## Limitations
-
-WorkforceIQ 目前仍是一個 prototype。
-
-主要限制包括：
-
-- **Synthetic data：** 目前 workforce data 為 synthetic demo data，不能用來推論真實企業的人才分布或 workforce outcomes。
-- **Heuristic thresholds：** Readiness thresholds 尚未透過真實 mobility outcomes 驗證或 calibration。
-- **No production authentication or RBAC：** 不同 workspace 的 visibility 目前由 query logic、application logic 與 UI flow 控制，而非 production-grade access control。
-- **No outcome validation：** 目前沒有真實 mobility、hiring 或 performance labels，因此無法驗證 staffing rules 的 predictive validity。
-- **測試涵蓋邏輯，不含介面：** 決策規則、visibility rules、每位訪客的資料庫與 database rebuild 都有自動化測試（見 [Testing](#testing)）。Streamlit 畫面目前以 manual QA 驗證。
-- **Demo 資料是暫時的：** 每位訪客的私人副本綁定在瀏覽器 session。重新整理網頁，或主機服務重啟 app，都會從 seeded data 重新開始一份新的副本，效果等同自動 Reset。
-- **Prototype deployment：** 目前系統主要作為 local / portfolio prototype，而不是 production HR platform。
-
-## Project Scope
-
-WorkforceIQ 目前聚焦於：
-
-- Workforce data integration
-- Skills intelligence
-- Career mobility
-- Internal staffing
-- Workforce planning
-- Learning coverage
-- Explainable decision support
-- Human-in-the-loop decision support
-
-目前刻意不把系統擴展成完整 HRIS，也不加入無法用現有資料驗證的 predictive features。
-
-專案的核心問題不是：
-
-> 「能不能加入更多 AI？」
-
-而是：
-
-> **在現有 evidence 下，系統能提供哪些透明、可解釋，而且不會做出超出資料所能支持之主張的 decision support？**
+</details>
