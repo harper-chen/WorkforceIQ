@@ -110,7 +110,7 @@ def render_candidate_card(candidate, role_id: int):
             f"{candidate['current_department']}"
         )
 
-        metric_col1, metric_col2, metric_col3 = st.columns(3)
+        metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
 
         metric_col1.metric(
             "Skill Match",
@@ -125,6 +125,11 @@ def render_candidate_card(candidate, role_id: int):
         metric_col3.metric(
             "Skills to develop",
             int(candidate["skills_to_develop"]),
+        )
+
+        metric_col4.metric(
+            "Not recorded",
+            int(candidate["not_recorded_skills"]),
         )
 
         if evidence["code"] == "limited":
