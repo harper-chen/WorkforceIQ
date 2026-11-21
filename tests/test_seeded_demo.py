@@ -91,6 +91,18 @@ class TestSeededDemo(unittest.TestCase):
         self.assertEqual(route["route_label"], "Internal Mobility")
         self.assertEqual(route["readiness_label"], "Train First")
 
+    def test_standalone_sql_queries_run_on_the_seeded_database(self):
+        # The queries in SQL/ are for exploring the data by hand; they must
+        # still match the schema.
+        connection = sqlite3.connect(self.path)
+        try:
+            for sql_file in sorted((Path(__file__).resolve().parents[1] / "SQL").glob("*.sql")):
+                with self.subTest(sql_file.name):
+                    rows = connection.execute(sql_file.read_text(encoding="utf-8")).fetchall()
+                    self.assertGreater(len(rows), 0)
+        finally:
+            connection.close()
+
 
 if __name__ == "__main__":
     unittest.main()

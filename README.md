@@ -35,12 +35,12 @@ The app never promotes, transfers, hires or rejects anyone. It brings scattered 
 
 ## What I built
 
-I designed and built WorkforceIQ on my own, from the data model to the interface:
+I designed and built WorkforceIQ on my own, from the data model to the interface, using AI coding assistants along the way, for example to help write the automated tests:
 
 - **A relational database of 14 tables** (employees, skills, roles, training, career interests, openings, future demand), filled with synthetic data for 100 employees, 16 roles, 98 skills and 67 training programs, with integrity checks on every rebuild.
 - **Transparent matching and readiness rules** written in SQL and Python, kept separate from the interface so each rule can be tested on its own.
 - **Three workspaces in Streamlit** for employees, managers and HR, with privacy rules enforced in the database queries.
-- **110 automated tests** that run on every push (Python 3.11 and 3.12), including hand-worked examples for the matching math and every readiness threshold at its boundary.
+- **111 automated tests** that run on every push (Python 3.11 and 3.12), including hand-worked examples for the matching math and every readiness threshold at its boundary.
 
 ## How it works
 
@@ -244,7 +244,7 @@ The rebuilt database is a read-only baseline: the running app never writes to it
 | Workforce planning | `max(planned − current, 0)` and which required skills the catalog cannot cover |
 | Per-visitor database | Separate copies per visitor, private saves and resets, and cleanup of old copies |
 | Seeded demo | The database rebuilds with every integrity check passing, and the demo story (River Hsu → Riley Chang → `Internal Mobility` / `Train First`) still holds |
-| Documentation | The ER diagrams match `schema.sql` |
+| Documentation | The ER diagrams match `schema.sql`, and the example queries in `SQL/` still run |
 
 </details>
 

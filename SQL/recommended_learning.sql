@@ -35,7 +35,6 @@ course_alignment AS (
     SELECT
         tp.training_id,
         tp.training_name,
-        tp.training_category,
         tp.estimated_weeks,
         COUNT(DISTINCT ts.skill_id) AS total_course_skills,
         COUNT(DISTINCT CASE WHEN trs.skill_id IS NOT NULL THEN ts.skill_id END) AS target_role_skill_overlap,
@@ -44,14 +43,13 @@ course_alignment AS (
     FROM training_programs tp
     JOIN training_skills ts ON ts.training_id = tp.training_id
     LEFT JOIN target_skills trs ON trs.skill_id = ts.skill_id
-    GROUP BY tp.training_id, tp.training_name, tp.training_category, tp.estimated_weeks
+    GROUP BY tp.training_id, tp.training_name, tp.estimated_weeks
 ),
 
 direct_skill_impact AS (
     SELECT
         ca.training_id,
         ca.training_name,
-        ca.training_category,
         ca.estimated_weeks,
         ca.total_course_skills,
         ca.target_role_skill_overlap,
@@ -76,7 +74,6 @@ direct_course_impact AS (
     SELECT
         training_id,
         training_name,
-        training_category,
         estimated_weeks,
         total_course_skills,
         target_role_skill_overlap,
@@ -94,7 +91,7 @@ direct_course_impact AS (
             '; '
         ) AS skills_helped
     FROM direct_skill_impact
-    GROUP BY training_id, training_name, training_category, estimated_weeks,
+    GROUP BY training_id, training_name, estimated_weeks,
              total_course_skills, target_role_skill_overlap, course_role_alignment
 ),
 
@@ -146,7 +143,6 @@ unlocking_courses_raw AS (
     SELECT DISTINCT
         prereq_course.training_id,
         prereq_course.training_name,
-        prereq_course.training_category,
         prereq_course.estimated_weeks,
         udp.locked_course_id,
         udp.locked_course_name,
@@ -186,7 +182,6 @@ unlocking_courses AS (
     SELECT
         ucr.training_id,
         ucr.training_name,
-        ucr.training_category,
         ucr.estimated_weeks,
         ucr.total_course_skills,
         ucr.target_role_skill_overlap,
@@ -196,7 +191,7 @@ unlocking_courses AS (
         ucpc.unmet_prerequisite_count
     FROM unlocking_courses_raw ucr
     JOIN unlocking_course_prereq_check ucpc ON ucpc.training_id = ucr.training_id
-    GROUP BY ucr.training_id, ucr.training_name, ucr.training_category, ucr.estimated_weeks,
+    GROUP BY ucr.training_id, ucr.training_name, ucr.estimated_weeks,
              ucr.total_course_skills, ucr.target_role_skill_overlap, ucr.course_role_alignment,
              ucpc.unmet_prerequisite_count
 ),
@@ -205,7 +200,6 @@ direct_output AS (
     SELECT
         dr.training_id,
         dr.training_name,
-        dr.training_category,
         dr.estimated_weeks,
         CASE WHEN dr.unmet_prerequisite_count = 0 THEN 'Start here' ELSE 'Next step' END AS learning_stage,
         ROUND(dr.course_role_alignment * 100, 1) AS course_role_alignment_percent,
@@ -236,7 +230,6 @@ unlocking_output AS (
     SELECT
         uc.training_id,
         uc.training_name,
-        uc.training_category,
         uc.estimated_weeks,
         'Prerequisite pathway' AS learning_stage,
         ROUND(uc.course_role_alignment * 100, 1) AS course_role_alignment_percent,
