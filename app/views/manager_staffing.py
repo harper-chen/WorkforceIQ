@@ -44,7 +44,7 @@ def render_candidate_skill_detail(candidate_id: int, role_id: int):
         return
 
     st.caption(
-        "Current proficiency is based only on skills recorded in WorkforceIQ. "
+        "Bar = recorded level, dark marker = required level. "
         "'Not recorded' does not mean the employee has no ability in that skill."
     )
 
@@ -54,13 +54,12 @@ def render_candidate_skill_detail(candidate_id: int, role_id: int):
         proficiency = skill["proficiency_level"]
 
         if proficiency is None or proficiency != proficiency:
+            current_level = None
             current_text = "Not recorded"
             gap_label = "Not recorded"
         else:
             current_level = int(proficiency)
-            current_text = (
-                f"Level {current_level} — {LEVEL_LABELS[current_level]}"
-            )
+            current_text = f"L{current_level} {LEVEL_LABELS[current_level]}"
             gap = required_level - current_level
 
             if gap <= 0:
@@ -73,29 +72,43 @@ def render_candidate_skill_detail(candidate_id: int, role_id: int):
                 gap_label = "Significant gap"
 
         with st.container(border=True):
-            left_col, right_col = st.columns([3, 2])
+            title_col, importance_col = st.columns([4, 1])
 
-            with left_col:
-                st.markdown(f"**{skill['skill_name']}**")
-                st.caption(skill["skill_category"])
-
-            with right_col:
-                st.caption(f"Importance {importance}/5")
-
-            current_col, required_col = st.columns(2)
-
-            with current_col:
-                st.caption("Current")
-                st.write(current_text)
-
-            with required_col:
-                st.caption("Required")
-                st.write(
-                    f"Level {required_level} — "
-                    f"{LEVEL_LABELS[required_level]}"
+            with title_col:
+                st.markdown(
+                    f"**{skill['skill_name']}** · {gap_label}"
                 )
 
-            st.caption(gap_label)
+            with importance_col:
+                st.caption(f"Importance {importance}/5")
+
+            st.markdown(
+                f"{current_text} → needs "
+                f"**L{required_level} {LEVEL_LABELS[required_level]}**"
+            )
+            st.markdown(
+                _level_bar_html(current_level, required_level),
+                unsafe_allow_html=True,
+            )
+
+
+def _level_bar_html(current_level, required_level: int) -> str:
+    """
+    Same bar as the employee view: filled = current level,
+    dark marker = required level. A skill that is not recorded
+    shows an empty bar.
+    """
+    current_pct = (current_level or 0) * 20
+    required_pct = required_level * 20
+    return (
+        '<div style="position:relative;height:10px;background:#E5E7EB;'
+        'border-radius:999px;margin:8px 0 6px 0;">'
+        f'<div style="width:{current_pct}%;height:100%;background:#6B8EAD;'
+        'border-radius:999px;"></div>'
+        f'<div style="position:absolute;left:calc({required_pct}% - 2px);'
+        "top:-3px;width:4px;height:16px;background:#374151;"
+        'border-radius:2px;"></div></div>'
+    )
 
 
 def render_candidate_card(candidate, role_id: int):
