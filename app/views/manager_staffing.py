@@ -154,6 +154,18 @@ def render_candidate_card(candidate, role_id: int):
         else:
             st.caption("Evidence quality: Sufficient")
 
+            not_recorded_skills = int(candidate["not_recorded_skills"])
+            if not_recorded_skills:
+                st.caption(
+                    f"{not_recorded_skills} required "
+                    f"{'skill is' if not_recorded_skills == 1 else 'skills are'} "
+                    "not recorded. Skill Match counts "
+                    f"{'it' if not_recorded_skills == 1 else 'them'} as 0 "
+                    "and does not count "
+                    f"{'it' if not_recorded_skills == 1 else 'them'} "
+                    "as skills to develop."
+                )
+
         st.markdown(
             f"**Internal readiness: {readiness['label']}**"
         )
@@ -215,6 +227,13 @@ def render_opening_decision_support(candidates):
             f"Profile evidence is treated as limited when fewer than "
             f"{MIN_PROFILE_COVERAGE * 100:.0f}% of required skills "
             "have recorded proficiency."
+        )
+        st.write(
+            "Skills that are not recorded count as 0 in Skill Match. "
+            "If giving them full credit would lift a candidate from a "
+            "larger development gap to Train First or better, readiness "
+            "is Not assessed, because the missing records would be "
+            "deciding the result."
         )
 
         st.write("**Step 2 — Internal readiness**")

@@ -102,7 +102,8 @@ direct_prereq_check AS (
     SELECT
         dci.training_id,
         COUNT(tpr.skill_id) AS prerequisite_count,
-        SUM(CASE WHEN COALESCE(es.proficiency_level, 0) < tpr.minimum_level THEN 1 ELSE 0 END) AS unmet_prerequisite_count
+        -- A prerequisite with no record is not counted as unmet (missing evidence is not a shortfall).
+        SUM(CASE WHEN es.proficiency_level IS NOT NULL AND es.proficiency_level < tpr.minimum_level THEN 1 ELSE 0 END) AS unmet_prerequisite_count
     FROM direct_course_impact dci
     LEFT JOIN training_prerequisites tpr ON tpr.training_id = dci.training_id
     CROSS JOIN params p
@@ -137,7 +138,8 @@ unmet_direct_prereqs AS (
     LEFT JOIN employee_skills es
       ON es.employee_id = p.employee_id
      AND es.skill_id = tpr.skill_id
-    WHERE COALESCE(es.proficiency_level, 0) < tpr.minimum_level
+    WHERE es.proficiency_level IS NOT NULL
+      AND es.proficiency_level < tpr.minimum_level
 ),
 
 unlocking_courses_raw AS (
@@ -169,7 +171,8 @@ unlocking_courses_raw AS (
 unlocking_course_prereq_check AS (
     SELECT
         u.training_id,
-        SUM(CASE WHEN COALESCE(es.proficiency_level, 0) < tpr.minimum_level THEN 1 ELSE 0 END) AS unmet_prerequisite_count
+        -- A prerequisite with no record is not counted as unmet (missing evidence is not a shortfall).
+        SUM(CASE WHEN es.proficiency_level IS NOT NULL AND es.proficiency_level < tpr.minimum_level THEN 1 ELSE 0 END) AS unmet_prerequisite_count
     FROM (SELECT DISTINCT training_id FROM unlocking_courses_raw) u
     LEFT JOIN training_prerequisites tpr ON tpr.training_id = u.training_id
     CROSS JOIN params p

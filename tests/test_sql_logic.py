@@ -114,7 +114,16 @@ class TestVisibleInternalCandidates(support.FixtureDatabaseTestCase):
         dan = self.by_name().loc["Dan"]
         self.assertAlmostEqual(dan["match_percent"], 41.7, delta=0.05)
         self.assertEqual(dan["not_recorded_skills"], 3)
+        self.assertEqual((dan["skills_met"], dan["skills_to_develop"]), (1, 0))
         self.assertEqual((dan["significant_gaps"], dan["priority_gaps"]), (0, 0))
+
+    def test_best_case_match_gives_missing_records_full_credit(self):
+        # Dan's only record (SQL) meets the requirement, so the best case is 100%.
+        dan = self.by_name().loc["Dan"]
+        self.assertAlmostEqual(dan["match_percent_if_unrecorded_met"], 100.0, delta=0.05)
+        # With no missing records, the best case equals the recorded match.
+        bob = self.by_name().loc["Bob"]
+        self.assertAlmostEqual(bob["match_percent_if_unrecorded_met"], bob["match_percent"], delta=0.05)
 
     def test_overperformance_in_one_skill_does_not_offset_a_gap_in_another(self):
         # Gina: SQL 5 vs 4 and Python 5 vs 3 are capped at 100% each, Modeling is 1 of 5.
@@ -181,6 +190,7 @@ class TestRecommendedCareers(support.FixtureDatabaseTestCase):
         dan = self.match(DAN, "Systems Analyst")
         self.assertAlmostEqual(dan["match_percent"], 41.7, delta=0.05)
         self.assertEqual(dan["not_recorded_skills"], 3)
+        self.assertEqual((dan["skills_met"], dan["skills_to_develop"]), (1, 0))
 
 
 class TestWorkforceDemand(support.FixtureDatabaseTestCase):

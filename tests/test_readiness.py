@@ -25,16 +25,28 @@ def candidate(
     met=8,
     to_develop=2,
     not_recorded=0,
+    best_case=None,
 ):
-    """A candidate row with 10 required skills unless told otherwise."""
-    return {
+    """
+    A candidate row with met + to_develop required skills (10 by default).
+
+    Each required skill is exactly one of met, to develop (a recorded gap)
+    or not recorded, so not-recorded skills are taken out of to_develop
+    first and then out of met, keeping the total unchanged.
+    """
+    from_to_develop = min(not_recorded, to_develop)
+    from_met = not_recorded - from_to_develop
+    row = {
         "match_percent": match,
         "priority_gaps": priority,
         "significant_gaps": significant,
-        "skills_met": met,
-        "skills_to_develop": to_develop,
+        "skills_met": met - from_met,
+        "skills_to_develop": to_develop - from_to_develop,
         "not_recorded_skills": not_recorded,
     }
+    if best_case is not None:
+        row["match_percent_if_unrecorded_met"] = best_case
+    return row
 
 
 def readiness_code(**kwargs):
@@ -158,6 +170,53 @@ class TestStaffingRoute(unittest.TestCase):
     def test_external_hire_only_when_everyone_is_assessed_and_none_qualify(self):
         result = self.route(candidate(match=20.0), candidate(match=40.0, priority=3))
         self.assertEqual(result["route_code"], "external_hire")
+
+
+class TestMissingRecordsDoNotDecideReadiness(unittest.TestCase):
+    """Sufficient evidence, but some required skills are still not recorded."""
+
+    def test_coverage_counts_not_recorded_skills_separately_from_gaps(self):
+        row = {"skills_met": 6, "skills_to_develop": 1, "not_recorded_skills": 3}
+        self.assertAlmostEqual(get_candidate_profile_coverage(row), 0.7)
+
+    def test_no_best_case_value_keeps_the_recorded_result(self):
+        self.assertEqual(readiness_code(match=50.0, not_recorded=2), "larger_gap")
+
+    def test_same_level_either_way_is_classified(self):
+        self.assertEqual(
+            readiness_code(match=85.0, not_recorded=2, best_case=95.0), "ready_now"
+        )
+        self.assertEqual(
+            readiness_code(match=30.0, not_recorded=2, best_case=50.0), "larger_gap"
+        )
+
+    def test_missing_records_cannot_push_a_candidate_out_of_train_first(self):
+        result = get_candidate_internal_readiness(
+            candidate(match=55.0, not_recorded=3, best_case=75.0)
+        )
+        self.assertEqual(result["code"], "not_assessed")
+        self.assertIn("55.0%", result["explanation"])
+        self.assertIn("75.0%", result["explanation"])
+
+    def test_train_first_that_could_be_ready_now_stays_train_first(self):
+        result = get_candidate_internal_readiness(
+            candidate(match=70.0, not_recorded=2, best_case=90.0)
+        )
+        self.assertEqual(result["code"], "train_first")
+        self.assertIn("Ready Now", result["explanation"])
+
+    def test_gaps_still_decide_when_missing_records_cannot_help(self):
+        # Two priority gaps are recorded, so no best-case match can reach Train First.
+        self.assertEqual(
+            readiness_code(match=40.0, priority=2, not_recorded=2, best_case=90.0),
+            "larger_gap",
+        )
+
+    def test_route_asks_for_evidence_instead_of_external_hire(self):
+        result = get_opening_staffing_route(
+            pd.DataFrame([candidate(match=55.0, not_recorded=3, best_case=75.0)])
+        )
+        self.assertEqual(result["route_code"], "more_evidence_needed")
 
 
 if __name__ == "__main__":

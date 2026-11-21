@@ -457,7 +457,8 @@ def get_recommended_careers(employee_id: int):
             ) AS skills_met,
             SUM(
                 CASE
-                    WHEN gap > 0 THEN 1
+                    WHEN employee_level IS NOT NULL
+                     AND gap > 0 THEN 1
                     ELSE 0
                 END
             ) AS skills_to_develop
@@ -762,6 +763,14 @@ def get_recommended_learning(employee_id, role_id):
     # =====================================================
 
     def get_course_prerequisite_status(training_id):
+        """
+        Return (available_now, unmet, unconfirmed).
+
+        unmet:       recorded below the minimum level -> the course is locked.
+        unconfirmed: not recorded -> the employee's level is unknown, so the
+                     course stays available but the prerequisite is flagged
+                     for the employee to confirm.
+        """
 
         course_prereqs = prerequisites[
             prerequisites[
@@ -774,29 +783,38 @@ def get_recommended_learning(employee_id, role_id):
             return (
                 True,
                 course_prereqs,
+                course_prereqs,
             )
 
-        course_prereqs[
-            "prerequisite_met"
-        ] = (
+        is_not_recorded = (
+            course_prereqs[
+                "not_recorded"
+            ] == 1
+        )
+
+        below_minimum = (
             course_prereqs[
                 "current_level"
             ]
-            >=
+            <
             course_prereqs[
                 "minimum_level"
             ]
         )
 
         unmet = course_prereqs[
-            ~course_prereqs[
-                "prerequisite_met"
-            ]
+            below_minimum
+            & ~is_not_recorded
+        ].copy()
+
+        unconfirmed = course_prereqs[
+            is_not_recorded
         ].copy()
 
         return (
             unmet.empty,
             unmet,
+            unconfirmed,
         )
 
     # =====================================================
@@ -966,6 +984,7 @@ def get_recommended_learning(employee_id, role_id):
         (
             prerequisites_met,
             unmet_prerequisites,
+            unconfirmed_prerequisites,
         ) = get_course_prerequisite_status(
             training_id
         )
@@ -1024,6 +1043,14 @@ def get_recommended_learning(employee_id, role_id):
                 "unmet_prerequisites": (
                     unmet_prerequisites
                 ),
+                "unconfirmed_prerequisites": [
+                    {
+                        "skill_id": int(row["skill_id"]),
+                        "skill_name": row["prerequisite_skill"],
+                        "minimum_level": int(row["minimum_level"]),
+                    }
+                    for _, row in unconfirmed_prerequisites.iterrows()
+                ],
             }
         )
 
@@ -1057,9 +1084,10 @@ def get_recommended_learning(employee_id, role_id):
     # 10. Ready-now ranking
     #
     #     1. more gaps improved
-    #     2. more gaps fully closed
-    #     3. higher role alignment
-    #     4. shorter duration
+    #     2. fewer prerequisites to confirm
+    #     3. more gaps fully closed
+    #     4. higher role alignment
+    #     5. shorter duration
     # =====================================================
 
     ready_courses.sort(
@@ -1067,6 +1095,11 @@ def get_recommended_learning(employee_id, role_id):
             -course[
                 "gaps_improved"
             ],
+            len(
+                course[
+                    "unconfirmed_prerequisites"
+                ]
+            ),
             -course[
                 "gaps_fully_closed"
             ],
@@ -1201,6 +1234,7 @@ def get_recommended_learning(employee_id, role_id):
                 (
                     option_available,
                     option_unmet,
+                    _option_unconfirmed,
                 ) = (
                     get_course_prerequisite_status(
                         option_training_id
@@ -1530,8 +1564,11 @@ def get_visible_internal_candidates(
 
     Missing employee skill records receive 0 demonstrated match
     credit for calculation and remain countable as "not recorded".
-    They are not classified as significant or priority gaps because
-    missing evidence is not evidence of a demonstrated deficiency.
+    They are not counted as skills to develop, significant gaps or
+    priority gaps, because missing evidence is not evidence of a
+    demonstrated deficiency. match_percent_if_unrecorded_met gives
+    the best-case match so readiness can tell whether the missing
+    records could change the result.
     """
     query = """
     WITH opening_info AS (
@@ -1629,6 +1666,23 @@ def get_visible_internal_candidates(
             1
         ) AS match_percent,
 
+        -- Best case for the same candidate: every not-recorded skill
+        -- is assumed to meet its requirement. Readiness compares this
+        -- with match_percent to tell whether missing records could
+        -- change the result.
+        ROUND(
+            100.0
+            * SUM(
+                importance_level
+                * CASE
+                    WHEN employee_level IS NULL THEN 1.0
+                    ELSE per_skill_match
+                  END
+            )
+            / SUM(importance_level),
+            1
+        ) AS match_percent_if_unrecorded_met,
+
         SUM(
             CASE
                 WHEN gap = 0 THEN 1
@@ -1638,7 +1692,8 @@ def get_visible_internal_candidates(
 
         SUM(
             CASE
-                WHEN gap > 0 THEN 1
+                WHEN employee_level IS NOT NULL
+                 AND gap > 0 THEN 1
                 ELSE 0
             END
         ) AS skills_to_develop,

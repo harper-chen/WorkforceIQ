@@ -12,18 +12,19 @@ TRAIN_FIRST_MATCH_THRESHOLD = 60.0
 
 
 def get_candidate_profile_coverage(candidate):
-    total_required_skills = (
+    # Every required skill is exactly one of: met, to develop (a recorded
+    # gap), or not recorded.
+    recorded_required_skills = (
         int(candidate["skills_met"])
         + int(candidate["skills_to_develop"])
+    )
+    total_required_skills = (
+        recorded_required_skills
+        + int(candidate["not_recorded_skills"])
     )
 
     if total_required_skills <= 0:
         return 0.0
-
-    recorded_required_skills = (
-        total_required_skills
-        - int(candidate["not_recorded_skills"])
-    )
 
     return recorded_required_skills / total_required_skills
 
@@ -51,6 +52,26 @@ def get_candidate_evidence_quality(candidate):
     }
 
 
+def get_best_case_match_percent(candidate):
+    """
+    Skill Match if every not-recorded skill met its requirement.
+
+    Falls back to the recorded Skill Match when the value is not
+    available or there are no missing records.
+    """
+    match_percent = float(candidate["match_percent"])
+
+    if int(candidate["not_recorded_skills"]) == 0:
+        return match_percent
+
+    best_case = candidate.get("match_percent_if_unrecorded_met")
+
+    if best_case is None or best_case != best_case:  # None or NaN
+        return match_percent
+
+    return max(float(best_case), match_percent)
+
+
 def get_candidate_internal_readiness(candidate):
     evidence = get_candidate_evidence_quality(candidate)
 
@@ -65,9 +86,53 @@ def get_candidate_internal_readiness(candidate):
         }
 
     match_percent = float(candidate["match_percent"])
+    best_case_match = get_best_case_match_percent(candidate)
     priority_gaps = int(candidate["priority_gaps"])
     significant_gaps = int(candidate["significant_gaps"])
 
+    recorded_result = _classify_recorded_profile(
+        match_percent,
+        priority_gaps,
+        significant_gaps,
+    )
+    best_case_result = _classify_recorded_profile(
+        best_case_match,
+        priority_gaps,
+        significant_gaps,
+    )
+
+    if recorded_result["code"] == best_case_result["code"]:
+        return recorded_result
+
+    # Missing records score 0 in Skill Match, so they can only pull a
+    # result down. If they are what keeps the employee out of Train
+    # First, the missing evidence would be deciding the result (and could
+    # push the opening toward an external hire), so it is not classified.
+    if recorded_result["code"] == "larger_gap":
+        return {
+            "code": "not_assessed",
+            "label": "Not assessed",
+            "explanation": (
+                "Internal readiness is not classified because the "
+                "skills that are not recorded could change the result: "
+                f"Skill Match is {match_percent:.1f}% with them counted as 0 "
+                f"and up to {best_case_match:.1f}% if they meet requirements."
+            ),
+        }
+
+    # Train First on recorded skills alone, Ready Now in the best case:
+    # keep the cautious result and say what would change it.
+    return {
+        **recorded_result,
+        "explanation": (
+            recorded_result["explanation"]
+            + " Recording the missing skills could show the employee "
+            "is Ready Now."
+        ),
+    }
+
+
+def _classify_recorded_profile(match_percent, priority_gaps, significant_gaps):
     if (
         match_percent >= READY_NOW_MATCH_THRESHOLD
         and priority_gaps == 0
@@ -151,7 +216,8 @@ def get_opening_staffing_route(candidates):
             "readiness_label": None,
             "explanation": (
                 "Some visible internal candidates do not have enough "
-                "recorded skill evidence to assess internal readiness reliably."
+                "recorded skill evidence to assess internal readiness reliably, "
+                "or their missing records could change the result."
             ),
         }
 

@@ -74,7 +74,7 @@ The demo follows one story across the three workspaces.
 
 Each of these comes from a risk I wanted the system to avoid:
 
-- **Missing data is not a weakness.** If a skill is not recorded, the app shows `Not recorded` instead of treating it as a gap. When too little is recorded to judge (under 70% of a role's required skills), readiness is `Not assessed` and the route becomes `More Evidence Needed`, rather than suggesting an external hire.
+- **Missing data is not a weakness.** If a skill is not recorded, the app shows `Not recorded` instead of treating it as a gap or a skill to develop. When too little is recorded to judge (under 70% of a role's required skills), or when the missing records alone could change the result, readiness is `Not assessed` and the route can become `More Evidence Needed`, rather than suggesting an external hire. A course prerequisite with no record does not lock the course; the employee is asked to confirm it instead.
 - **One strength cannot hide another gap.** Each skill counts for at most 100% of its requirement, so being excellent at one skill does not cancel a missing one.
 - **Privacy by default, sharing by choice.** Career interests start private. Managers see only what employees chose to share, only for the exact role of an open position they own, and HR planning stays at the aggregate level.
 - **No ranking that decides for people.** The candidate list is sorted for readability, but the readiness label and the explanation carry the meaning, and the app never makes the decision.
@@ -120,7 +120,7 @@ Overall Skill Match, weighted by each skill's importance to the role:
 Σ(importance)
 ```
 
-A skill with no record gets 0 match credit in this calculation, but the interface labels it `Not recorded` and does not count it as a gap.
+A skill with no record gets 0 match credit in this calculation, but the interface labels it `Not recorded` and does not count it as a gap or a skill to develop. Because a 0 can only pull the score down, the app also computes a **best-case Skill Match** in which every not-recorded skill meets its requirement.
 
 **Evidence coverage** is the share of a role's required skills that have a record for the employee (not weighted by importance).
 
@@ -133,10 +133,15 @@ A skill with no record gets 0 match credit in this calculation, but the interfac
 | Larger development gap | ≥ 70% | Does not meet the rows above | — | — |
 | Not assessed | < 70% | Not assessed | — | — |
 
+With at least 70% coverage, readiness is checked twice: with the recorded Skill Match and with the best-case Skill Match (gaps count only recorded skills both times). If the two results differ, the missing records are deciding the result:
+
+- Larger development gap on recorded skills, but Train First or better in the best case → `Not assessed`.
+- Train First on recorded skills, but Ready Now in the best case → stays `Train First`, with a note that recording the missing skills could show the employee is Ready Now.
+
 **Staffing route** for an opening:
 
 - **Internal Mobility:** at least one visible candidate is `Ready Now` or `Train First`.
-- **More Evidence Needed:** no candidate qualifies, but at least one is `Not assessed`.
+- **More Evidence Needed:** no candidate qualifies, but at least one is `Not assessed` (too little recorded, or the missing records could change the result).
 - **External Hire:** every visible candidate was assessed and none qualifies, or no employee has shared interest in that role.
 
 Visible candidates are listed by Skill Match, then fewer priority gaps, then fewer significant gaps. A manager's paused openings are listed, but candidate search is disabled until the opening is open again.

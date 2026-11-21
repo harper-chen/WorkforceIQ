@@ -554,6 +554,21 @@ def _render_recommended_option(option: dict, required_level: int):
     if option["status_code"] == "locked":
         _render_prerequisites(course)
 
+    _render_unconfirmed_prerequisites(course)
+
+
+def _render_unconfirmed_prerequisites(course: dict):
+    """
+    Prerequisites with no skill record do not lock a course: missing
+    evidence is not a demonstrated shortfall. They are flagged instead.
+    """
+    for prerequisite in course.get("unconfirmed_prerequisites", []):
+        st.caption(
+            f"Confirm before enrolling: **{prerequisite['skill_name']}** "
+            f"is not recorded; this course expects "
+            f"L{prerequisite['minimum_level']}."
+        )
+
 
 def _render_skill_card(skill_row, state: dict, learning_index: dict, catalog):
     skill_id = int(skill_row["skill_id"])
