@@ -44,7 +44,8 @@ def render_candidate_skill_detail(candidate_id: int, role_id: int):
         return
 
     st.caption(
-        "Bar = recorded level, dark marker = required level. "
+        "Skills are listed by importance to the role (darker blue = more "
+        "important). Bar = recorded level, dark marker = required level. "
         "'Not recorded' does not mean the employee has no ability in that skill."
     )
 
@@ -56,31 +57,36 @@ def render_candidate_skill_detail(candidate_id: int, role_id: int):
         if proficiency is None or proficiency != proficiency:
             current_level = None
             current_text = "Not recorded"
-            gap_label = "Not recorded"
+            status = "not_recorded"
         else:
             current_level = int(proficiency)
             current_text = f"L{current_level} {LEVEL_LABELS[current_level]}"
             gap = required_level - current_level
 
             if gap <= 0:
-                gap_label = "Meets requirement"
+                status = "meets"
             elif gap == 1:
-                gap_label = "Small gap"
+                status = "small_gap"
             elif importance >= 4:
-                gap_label = "Priority gap"
+                status = "priority_gap"
             else:
-                gap_label = "Significant gap"
+                status = "significant_gap"
 
         with st.container(border=True):
-            title_col, importance_col = st.columns([4, 1])
+            title_col, badge_col = st.columns([3, 2])
 
             with title_col:
-                st.markdown(
-                    f"**{skill['skill_name']}** · {gap_label}"
-                )
+                st.markdown(f"**{skill['skill_name']}**")
 
-            with importance_col:
-                st.caption(f"Importance {importance}/5")
+            with badge_col:
+                st.markdown(
+                    '<div style="text-align:right;">'
+                    + _status_badge_html(status)
+                    + "&nbsp;"
+                    + _importance_badge_html(importance)
+                    + "</div>",
+                    unsafe_allow_html=True,
+                )
 
             st.markdown(
                 f"{current_text} → needs "
@@ -90,6 +96,48 @@ def render_candidate_skill_detail(candidate_id: int, role_id: int):
                 _level_bar_html(current_level, required_level),
                 unsafe_allow_html=True,
             )
+
+
+# Status: how the recorded level compares with the requirement.
+# Warm colors = gaps, green = met, gray = no evidence.
+STATUS_BADGES = {
+    "meets": ("Meets requirement", "#DCFCE7", "#166534"),
+    "small_gap": ("Small gap", "#FEF3C7", "#92400E"),
+    "significant_gap": ("Significant gap", "#FFEDD5", "#9A3412"),
+    "priority_gap": ("Priority gap", "#FEE2E2", "#991B1B"),
+    "not_recorded": ("Not recorded", "#F3F4F6", "#4B5563"),
+}
+
+# Importance: one blue scale, darker = more important to the role.
+# Kept separate from the status colors so the two are not confused.
+IMPORTANCE_BADGES = {
+    5: ("#1E3A8A", "#FFFFFF"),
+    4: ("#3B5BA9", "#FFFFFF"),
+    3: ("#BFDBFE", "#1E3A8A"),
+    2: ("#DBEAFE", "#1E3A8A"),
+    1: ("#EFF6FF", "#1E3A8A"),
+}
+
+
+def _badge_html(text: str, background: str, color: str) -> str:
+    return (
+        f'<span style="display:inline-block;padding:2px 10px;'
+        f"border-radius:999px;font-size:0.8rem;font-weight:600;"
+        f'background:{background};color:{color};white-space:nowrap;">'
+        f"{text}</span>"
+    )
+
+
+def _status_badge_html(status: str) -> str:
+    label, background, color = STATUS_BADGES[status]
+    return _badge_html(label, background, color)
+
+
+def _importance_badge_html(importance: int) -> str:
+    background, color = IMPORTANCE_BADGES.get(
+        importance, IMPORTANCE_BADGES[1]
+    )
+    return _badge_html(f"Importance {importance}/5", background, color)
 
 
 def _level_bar_html(current_level, required_level: int) -> str:
