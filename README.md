@@ -40,7 +40,7 @@ I designed and built WorkforceIQ on my own, from the data model to the interface
 - **A relational database of 14 tables** (employees, skills, roles, training, career interests, openings, future demand), filled with synthetic data for 100 employees, 16 roles, 98 skills and 67 training programs, with integrity checks on every rebuild.
 - **Transparent matching and readiness rules** written in SQL and Python, kept separate from the interface so each rule can be tested on its own.
 - **Three workspaces in Streamlit** for employees, managers and HR, with privacy rules enforced in the database queries.
-- **99 automated tests** that run on every push (Python 3.11 and 3.12), including hand-worked examples for the matching math and every readiness threshold at its boundary.
+- **110 automated tests** that run on every push (Python 3.11 and 3.12), including hand-worked examples for the matching math and every readiness threshold at its boundary.
 
 ## How it works
 
@@ -132,6 +132,8 @@ A skill with no record gets 0 match credit in this calculation, but the interfac
 | Train First | ≥ 70% | ≥ 60% | ≤ 1 | No cap |
 | Larger development gap | ≥ 70% | Does not meet the rows above | — | — |
 | Not assessed | < 70% | Not assessed | — | — |
+
+A **significant gap** is a recorded skill that is 2 or more levels below the requirement; a **priority gap** is a significant gap in one of the role's most important skills (importance 4–5). Skills with no record are never counted as either.
 
 With at least 70% coverage, readiness is checked twice: with the recorded Skill Match and with the best-case Skill Match (gaps count only recorded skills both times). If the two results differ, the missing records are deciding the result:
 
@@ -237,7 +239,8 @@ The rebuilt database is a read-only baseline: the running app never writes to it
 |---|---|
 | Skill Match and gaps | Weighted match, the 100% cap per skill, gap and priority-gap counts, and missing records scored as 0 without being counted as gaps, checked against a small database whose answers are worked out by hand |
 | Manager visibility | Only interests the employee made visible, in the exact role of an open opening owned by that manager; private interests, other roles, paused openings and the hiring manager are excluded |
-| Readiness and staffing route | Every threshold at its boundary and each staffing route |
+| Readiness and staffing route | Every threshold at its boundary, each staffing route, and the best-case check that keeps missing records from deciding a result |
+| Course prerequisites | A prerequisite recorded below the minimum locks a course; one with no record only asks the employee to confirm it |
 | Workforce planning | `max(planned − current, 0)` and which required skills the catalog cannot cover |
 | Per-visitor database | Separate copies per visitor, private saves and resets, and cleanup of old copies |
 | Seeded demo | The database rebuilds with every integrity check passing, and the demo story (River Hsu → Riley Chang → `Internal Mobility` / `Train First`) still holds |
