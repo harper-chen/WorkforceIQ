@@ -43,59 +43,113 @@ def render_candidate_skill_detail(candidate_id: int, role_id: int):
         )
         return
 
+    sort_choice = st.radio(
+        "Sort skills by",
+        options=list(SKILL_SORT_OPTIONS),
+        horizontal=True,
+        key=f"skill_sort_{candidate_id}_{role_id}",
+    )
+
     st.caption(
-        "Skills are listed by importance to the role (darker blue = more "
-        "important). Bar = recorded level, dark marker = required level. "
+        f"{SKILL_SORT_OPTIONS[sort_choice]} "
+        "Bar = recorded level, dark marker = required level. "
         "'Not recorded' does not mean the employee has no ability in that skill."
     )
 
-    for _, skill in skill_details.iterrows():
-        required_level = int(skill["required_level"])
-        importance = int(skill["importance_level"])
-        proficiency = skill["proficiency_level"]
+    skills = [_skill_view(skill) for _, skill in skill_details.iterrows()]
 
-        if proficiency is None or proficiency != proficiency:
-            current_level = None
-            current_text = "Not recorded"
-            status = "not_recorded"
-        else:
-            current_level = int(proficiency)
-            current_text = f"L{current_level} {LEVEL_LABELS[current_level]}"
-            gap = required_level - current_level
+    if sort_choice == "Status":
+        skills.sort(
+            key=lambda item: (
+                STATUS_ORDER.index(item["status"]),
+                -item["importance"],
+                item["skill_name"],
+            )
+        )
+    else:
+        skills.sort(
+            key=lambda item: (-item["importance"], item["skill_name"])
+        )
 
-            if gap <= 0:
-                status = "meets"
-            elif gap == 1:
-                status = "small_gap"
-            elif importance >= 4:
-                status = "priority_gap"
-            else:
-                status = "significant_gap"
+    for item in skills:
+        required_level = item["required_level"]
 
         with st.container(border=True):
             title_col, badge_col = st.columns([3, 2])
 
             with title_col:
-                st.markdown(f"**{skill['skill_name']}**")
+                st.markdown(f"**{item['skill_name']}**")
 
             with badge_col:
                 st.markdown(
                     '<div style="text-align:right;">'
-                    + _status_badge_html(status)
+                    + _status_badge_html(item["status"])
                     + "&nbsp;"
-                    + _importance_badge_html(importance)
+                    + _importance_badge_html(item["importance"])
                     + "</div>",
                     unsafe_allow_html=True,
                 )
 
             st.markdown(
-                f"{current_text} → needs "
+                f"{item['current_text']} → needs "
                 f"**L{required_level} {LEVEL_LABELS[required_level]}**"
             )
             st.markdown(
-                _level_bar_html(current_level, required_level),
+                _level_bar_html(item["current_level"], required_level),
                 unsafe_allow_html=True,
             )
+
+
+SKILL_SORT_OPTIONS = {
+    "Importance": (
+        "Most important to the role first (darker blue = more important)."
+    ),
+    "Status": (
+        "Largest gaps first: priority, significant, small, not recorded, "
+        "then requirements met."
+    ),
+}
+
+STATUS_ORDER = [
+    "priority_gap",
+    "significant_gap",
+    "small_gap",
+    "not_recorded",
+    "meets",
+]
+
+
+def _skill_view(skill) -> dict:
+    required_level = int(skill["required_level"])
+    importance = int(skill["importance_level"])
+    proficiency = skill["proficiency_level"]
+
+    if proficiency is None or proficiency != proficiency:
+        current_level = None
+        current_text = "Not recorded"
+        status = "not_recorded"
+    else:
+        current_level = int(proficiency)
+        current_text = f"L{current_level} {LEVEL_LABELS[current_level]}"
+        gap = required_level - current_level
+
+        if gap <= 0:
+            status = "meets"
+        elif gap == 1:
+            status = "small_gap"
+        elif importance >= 4:
+            status = "priority_gap"
+        else:
+            status = "significant_gap"
+
+    return {
+        "skill_name": skill["skill_name"],
+        "required_level": required_level,
+        "importance": importance,
+        "current_level": current_level,
+        "current_text": current_text,
+        "status": status,
+    }
 
 
 # Status: how the recorded level compares with the requirement.
@@ -108,14 +162,15 @@ STATUS_BADGES = {
     "not_recorded": ("Not recorded", "#F3F4F6", "#4B5563"),
 }
 
-# Importance: one blue scale, darker = more important to the role.
+# Importance: one blue scale with a clearly different shade per level,
+# darker = more important to the role.
 # Kept separate from the status colors so the two are not confused.
 IMPORTANCE_BADGES = {
-    5: ("#1E3A8A", "#FFFFFF"),
-    4: ("#3B5BA9", "#FFFFFF"),
-    3: ("#BFDBFE", "#1E3A8A"),
-    2: ("#DBEAFE", "#1E3A8A"),
-    1: ("#EFF6FF", "#1E3A8A"),
+    5: ("#172554", "#FFFFFF"),
+    4: ("#1D4ED8", "#FFFFFF"),
+    3: ("#60A5FA", "#0B1F4D"),
+    2: ("#BFDBFE", "#1E3A8A"),
+    1: ("#F1F5F9", "#475569"),
 }
 
 
