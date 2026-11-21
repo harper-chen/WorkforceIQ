@@ -105,8 +105,8 @@ SKILL_SORT_OPTIONS = {
         "Most important to the role first (darker blue = more important)."
     ),
     "Status": (
-        "Largest gaps first: priority, significant, small, not recorded, "
-        "then requirements met."
+        "Largest gaps first: priority, significant, small, "
+        "then requirements met, then not recorded."
     ),
 }
 
@@ -114,8 +114,8 @@ STATUS_ORDER = [
     "priority_gap",
     "significant_gap",
     "small_gap",
-    "not_recorded",
     "meets",
+    "not_recorded",
 ]
 
 
