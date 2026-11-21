@@ -62,6 +62,7 @@ def render_candidate_skill_detail(candidate_id: int, role_id: int):
         skills.sort(
             key=lambda item: (
                 STATUS_ORDER.index(item["status"]),
+                -item["gap"],
                 -item["importance"],
                 item["skill_name"],
             )
@@ -105,15 +106,13 @@ SKILL_SORT_OPTIONS = {
         "Most important to the role first (darker blue = more important)."
     ),
     "Status": (
-        "Largest gaps first: priority, significant, small, "
-        "then requirements met, then not recorded."
+        "Gaps first (largest gap first), then requirements met, "
+        "then not recorded."
     ),
 }
 
 STATUS_ORDER = [
-    "priority_gap",
-    "significant_gap",
-    "small_gap",
+    "gap",
     "meets",
     "not_recorded",
 ]
@@ -128,19 +127,12 @@ def _skill_view(skill) -> dict:
         current_level = None
         current_text = "Not recorded"
         status = "not_recorded"
+        gap = 0
     else:
         current_level = int(proficiency)
         current_text = f"L{current_level} {LEVEL_LABELS[current_level]}"
         gap = required_level - current_level
-
-        if gap <= 0:
-            status = "meets"
-        elif gap == 1:
-            status = "small_gap"
-        elif importance >= 4:
-            status = "priority_gap"
-        else:
-            status = "significant_gap"
+        status = "meets" if gap <= 0 else "gap"
 
     return {
         "skill_name": skill["skill_name"],
@@ -149,16 +141,15 @@ def _skill_view(skill) -> dict:
         "current_level": current_level,
         "current_text": current_text,
         "status": status,
+        "gap": max(gap, 0),
     }
 
 
 # Status: how the recorded level compares with the requirement.
-# Warm colors = gaps, green = met, gray = no evidence.
+# Orange = gap (the bar shows how large), green = met, gray = no evidence.
 STATUS_BADGES = {
+    "gap": ("Gap", "#FFEDD5", "#9A3412"),
     "meets": ("Meets requirement", "#DCFCE7", "#166534"),
-    "small_gap": ("Small gap", "#FEF3C7", "#92400E"),
-    "significant_gap": ("Significant gap", "#FFEDD5", "#9A3412"),
-    "priority_gap": ("Priority gap", "#FEE2E2", "#991B1B"),
     "not_recorded": ("Not recorded", "#F3F4F6", "#4B5563"),
 }
 
@@ -248,44 +239,25 @@ def render_candidate_card(candidate, role_id: int):
             int(candidate["not_recorded_skills"]),
         )
 
+        not_recorded_skills = int(candidate["not_recorded_skills"])
+        no_record_text = (
+            "1 skill has no record"
+            if not_recorded_skills == 1
+            else f"{not_recorded_skills} skills have no record"
+        )
+
         if evidence["code"] == "limited":
-            not_recorded_skills = int(
-                candidate["not_recorded_skills"]
-            )
-
-            skill_noun = (
-                "skill"
-                if not_recorded_skills == 1
-                else "skills"
-            )
-
-            verb = (
-                "is"
-                if not_recorded_skills == 1
-                else "are"
-            )
-
             st.warning(
-                "Evidence quality: Limited. "
-                f"{not_recorded_skills} required "
-                f"{skill_noun} {verb} not recorded. "
-                "The match score should not be interpreted "
-                "as evidence that the employee lacks those skills."
+                f"Not enough data: {no_record_text}. A low Skill Match "
+                "here does not mean the employee lacks these skills."
             )
-        else:
-            st.caption("Evidence quality: Sufficient")
-
-            not_recorded_skills = int(candidate["not_recorded_skills"])
-            if not_recorded_skills:
-                st.caption(
-                    f"{not_recorded_skills} required "
-                    f"{'skill is' if not_recorded_skills == 1 else 'skills are'} "
-                    "not recorded. Skill Match counts "
-                    f"{'it' if not_recorded_skills == 1 else 'them'} as 0 "
-                    "and does not count "
-                    f"{'it' if not_recorded_skills == 1 else 'them'} "
-                    "as skills to develop."
-                )
+        elif not_recorded_skills:
+            st.caption(
+                f"{no_record_text}. Skill Match counts "
+                f"{'it' if not_recorded_skills == 1 else 'them'} as 0, "
+                f"but {'it is' if not_recorded_skills == 1 else 'they are'} "
+                "not treated as a gap."
+            )
 
         st.markdown(
             f"**Internal readiness: {readiness['label']}**"
@@ -293,7 +265,7 @@ def render_candidate_card(candidate, role_id: int):
         st.caption(readiness["explanation"])
 
         st.caption(
-            "Explicitly shared interest in this exact role "
+            "Shared interest in this role "
             f"on {candidate['interest_shared_date']}."
         )
 
@@ -328,61 +300,36 @@ def render_opening_decision_support(candidates):
     st.info(route["explanation"])
 
     st.caption(
-        "The staffing route answers where the talent should primarily come from. "
-        "Internal readiness separately describes whether an internal candidate "
-        "appears ready now or should train first."
+        "Staffing route: where to look first, inside or outside the company. "
+        "Internal readiness: how ready the best internal candidate is. "
+        "These are simple rules anyone can check, not a prediction model, "
+        "and the manager makes the decision."
     )
 
-    st.caption(
-        "This is a transparent MVP heuristic based on recorded skills, "
-        "profile coverage, and employee-controlled visibility. "
-        "It is not a predictive hiring model and does not make "
-        "an employment decision."
-    )
+    with st.expander("How this is decided"):
+        st.markdown(
+            f"""
+**1. Is there enough data?**
+If fewer than {MIN_PROFILE_COVERAGE * 100:.0f}% of the role's skills are
+recorded for an employee, the app does not judge them. Skills with no
+record count as 0 in Skill Match, so if they alone could decide whether
+someone qualifies, the app does not judge either.
 
-    with st.expander(
-        "How this decision support is determined"
-    ):
-        st.write("**Step 1 — Evidence quality**")
-        st.write(
-            f"Profile evidence is treated as limited when fewer than "
-            f"{MIN_PROFILE_COVERAGE * 100:.0f}% of required skills "
-            "have recorded proficiency."
-        )
-        st.write(
-            "Skills that are not recorded count as 0 in Skill Match. "
-            "If giving them full credit would lift a candidate from a "
-            "larger development gap to Train First or better, readiness "
-            "is Not assessed, because the missing records would be "
-            "deciding the result."
-        )
+**2. How ready is each employee?**
+- **Ready Now:** Skill Match of {READY_NOW_MATCH_THRESHOLD:.0f}% or more,
+  and at most one skill is 2+ levels short (never one of the most
+  important skills, importance 4–5).
+- **Train First:** Skill Match of {TRAIN_FIRST_MATCH_THRESHOLD:.0f}% or
+  more, and at most one of the most important skills is 2+ levels short.
+- Otherwise: the gap is larger.
 
-        st.write("**Step 2 — Internal readiness**")
-        st.write(
-            f"Ready Now: at least "
-            f"{READY_NOW_MATCH_THRESHOLD:.0f}% skill match, "
-            "no priority gaps, and at most one significant gap."
-        )
-        st.write(
-            f"Train First: at least "
-            f"{TRAIN_FIRST_MATCH_THRESHOLD:.0f}% skill match "
-            "and at most one priority gap."
-        )
-
-        st.write("**Step 3 — Staffing route**")
-        st.write(
-            "Internal Mobility is recommended when at least one visible "
-            "internal candidate is Ready Now or Train First."
-        )
-        st.write(
-            "More Evidence Needed is shown when no visible candidate is "
-            "Ready Now or Train First and at least one candidate still has "
-            "insufficient recorded skill evidence for a reliable assessment."
-        )
-        st.write(
-            "External Hire is recommended only when no visible candidate is "
-            "Ready Now or Train First and all visible candidates have "
-            "sufficient evidence, or when no internal interest is visible."
+**3. Where to look first?**
+- **Internal Mobility:** someone is Ready Now or Train First.
+- **More Evidence Needed:** no one qualifies yet, but someone could not be
+  judged. Record more skills before hiring from outside.
+- **External Hire:** everyone was judged and no one qualifies, or no
+  employee shared interest in this role.
+"""
         )
 
 

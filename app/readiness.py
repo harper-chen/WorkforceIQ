@@ -37,8 +37,8 @@ def get_candidate_evidence_quality(candidate):
             "code": "limited",
             "label": "Limited",
             "explanation": (
-                "Too many required skills are not recorded "
-                "to support a reliable readiness assessment."
+                "Too few of this role's skills are recorded "
+                "to judge fairly."
             ),
         }
 
@@ -46,8 +46,8 @@ def get_candidate_evidence_quality(candidate):
         "code": "sufficient",
         "label": "Sufficient",
         "explanation": (
-            "Enough required skills are recorded to support "
-            "a preliminary readiness assessment."
+            "Enough of this role's skills are recorded "
+            "to make a first judgment."
         ),
     }
 
@@ -80,8 +80,8 @@ def get_candidate_internal_readiness(candidate):
             "code": "not_assessed",
             "label": "Not assessed",
             "explanation": (
-                "Internal readiness is not classified because "
-                "profile evidence is currently limited."
+                "Not judged yet: too few of this role's skills "
+                "are recorded."
             ),
         }
 
@@ -113,10 +113,10 @@ def get_candidate_internal_readiness(candidate):
             "code": "not_assessed",
             "label": "Not assessed",
             "explanation": (
-                "Internal readiness is not classified because the "
-                "skills that are not recorded could change the result: "
-                f"Skill Match is {match_percent:.1f}% with them counted as 0 "
-                f"and up to {best_case_match:.1f}% if they meet requirements."
+                "Not judged yet: the skills with no record could "
+                f"change the result. Skill Match is {match_percent:.1f}% now, "
+                f"and could be up to {best_case_match:.1f}% once they are "
+                "recorded."
             ),
         }
 
@@ -126,8 +126,8 @@ def get_candidate_internal_readiness(candidate):
         **recorded_result,
         "explanation": (
             recorded_result["explanation"]
-            + " Recording the missing skills could show the employee "
-            "is Ready Now."
+            + " Once the missing skills are recorded, "
+            "the employee might be Ready Now."
         ),
     }
 
@@ -142,8 +142,9 @@ def _classify_recorded_profile(match_percent, priority_gaps, significant_gaps):
             "code": "ready_now",
             "label": "Ready Now",
             "explanation": (
-                "Recorded skills are closely aligned with the role, "
-                "with no priority gap and at most one significant gap."
+                "Close to what the role needs: at most one skill is "
+                "2 or more levels short, and it is not one of the most "
+                "important skills."
             ),
         }
 
@@ -155,8 +156,8 @@ def _classify_recorded_profile(match_percent, priority_gaps, significant_gaps):
             "code": "train_first",
             "label": "Train First",
             "explanation": (
-                "The employee shows meaningful alignment, "
-                "but targeted development is recommended before transfer."
+                "A good fit overall, but some skills need "
+                "training before the move."
             ),
         }
 
@@ -164,8 +165,8 @@ def _classify_recorded_profile(match_percent, priority_gaps, significant_gaps):
         "code": "larger_gap",
         "label": "Larger development gap",
         "explanation": (
-            "The recorded skill profile currently shows a larger "
-            "development need relative to the role."
+            "The recorded skills are still far from "
+            "what the role needs."
         ),
     }
 
@@ -177,8 +178,8 @@ def get_opening_staffing_route(candidates):
             "route_label": "External Hire",
             "readiness_label": None,
             "explanation": (
-                "No employee has currently shared interest in this exact role "
-                "with the relevant opening manager."
+                "No employee has shared interest in this role "
+                "with you yet."
             ),
         }
 
@@ -193,8 +194,8 @@ def get_opening_staffing_route(candidates):
             "route_label": "Internal Mobility",
             "readiness_label": "Ready Now",
             "explanation": (
-                "At least one visible internal candidate appears ready "
-                "for further transfer consideration based on recorded skills."
+                "At least one employee who shared interest "
+                "looks ready to move now."
             ),
         }
 
@@ -204,8 +205,8 @@ def get_opening_staffing_route(candidates):
             "route_label": "Internal Mobility",
             "readiness_label": "Train First",
             "explanation": (
-                "At least one visible internal candidate appears suitable "
-                "for a train-then-transfer pathway."
+                "At least one employee who shared interest "
+                "could move after some training."
             ),
         }
 
@@ -215,9 +216,9 @@ def get_opening_staffing_route(candidates):
             "route_label": "More Evidence Needed",
             "readiness_label": None,
             "explanation": (
-                "Some visible internal candidates do not have enough "
-                "recorded skill evidence to assess internal readiness reliably, "
-                "or their missing records could change the result."
+                "Before hiring from outside, record more skills for the "
+                "employees who shared interest. What is missing could "
+                "change the result."
             ),
         }
 
@@ -226,7 +227,7 @@ def get_opening_staffing_route(candidates):
         "route_label": "External Hire",
         "readiness_label": None,
         "explanation": (
-            "Visible internal candidates have sufficient evidence, "
-            "but none currently meet the Ready Now or Train First criteria."
+            "The employees who shared interest were assessed, "
+            "but none is close enough to the role yet."
         ),
     }
