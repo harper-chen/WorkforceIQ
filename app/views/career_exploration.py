@@ -17,6 +17,7 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
+from views.skill_display import level_bar_html, skill_badges_html
 from db import (
     get_employee_profile,
     get_recommended_careers,
@@ -137,17 +138,7 @@ def _department_badge_html(department) -> str:
 
 def _level_bar_html(current_level, required_level: int) -> str:
     """One bar: filled = current level, dark marker = required level."""
-    current_pct = (current_level or 0) * 20
-    required_pct = required_level * 20
-    return (
-        '<div style="position:relative;height:10px;background:#E5E7EB;'
-        'border-radius:999px;margin:8px 0 6px 0;">'
-        f'<div style="width:{current_pct}%;height:100%;background:#6B8EAD;'
-        'border-radius:999px;"></div>'
-        f'<div style="position:absolute;left:calc({required_pct}% - 2px);'
-        "top:-3px;width:4px;height:16px;background:#374151;"
-        'border-radius:2px;"></div></div>'
-    )
+    return level_bar_html(current_level, required_level)
 
 
 # =========================================================
@@ -575,12 +566,17 @@ def _render_skill_card(skill_row, state: dict, learning_index: dict, catalog):
     required = state["required"]
 
     with st.container(border=True):
-        title_col, importance_col = st.columns([4, 1])
+        title_col, badge_col = st.columns([3, 2])
         with title_col:
             st.markdown(f"**{skill_row['skill_name']}**")
-            st.caption(skill_row["skill_category"])
-        with importance_col:
-            st.caption(f"Importance {state['importance']}/5")
+        with badge_col:
+            st.markdown(
+                skill_badges_html(
+                    state["importance"],
+                    state["current"] is None,
+                ),
+                unsafe_allow_html=True,
+            )
 
         current_text = (
             "Not recorded"

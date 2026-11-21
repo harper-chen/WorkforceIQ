@@ -9,6 +9,7 @@ from readiness import (
     get_candidate_profile_coverage,
     get_opening_staffing_route,
 )
+from views.skill_display import level_bar_html, skill_badges_html
 from db import (
     get_manager_openings,
     get_visible_internal_candidates,
@@ -58,7 +59,7 @@ def render_candidate_skill_detail(candidate_id: int, role_id: int):
 
     skills = [_skill_view(skill) for _, skill in skill_details.iterrows()]
 
-    if sort_choice == "Status":
+    if sort_choice == "Gap size":
         skills.sort(
             key=lambda item: (
                 STATUS_ORDER.index(item["status"]),
@@ -83,11 +84,10 @@ def render_candidate_skill_detail(candidate_id: int, role_id: int):
 
             with badge_col:
                 st.markdown(
-                    '<div style="text-align:right;">'
-                    + _status_badge_html(item["status"])
-                    + "&nbsp;"
-                    + _importance_badge_html(item["importance"])
-                    + "</div>",
+                    skill_badges_html(
+                        item["importance"],
+                        item["status"] == "not_recorded",
+                    ),
                     unsafe_allow_html=True,
                 )
 
@@ -96,7 +96,7 @@ def render_candidate_skill_detail(candidate_id: int, role_id: int):
                 f"**L{required_level} {LEVEL_LABELS[required_level]}**"
             )
             st.markdown(
-                _level_bar_html(item["current_level"], required_level),
+                level_bar_html(item["current_level"], required_level),
                 unsafe_allow_html=True,
             )
 
@@ -105,9 +105,9 @@ SKILL_SORT_OPTIONS = {
     "Importance": (
         "Most important to the role first (darker blue = more important)."
     ),
-    "Status": (
-        "Gaps first (largest gap first), then requirements met, "
-        "then not recorded."
+    "Gap size": (
+        "Largest gap first, then skills that meet the requirement, "
+        "then skills with no record."
     ),
 }
 
@@ -143,66 +143,6 @@ def _skill_view(skill) -> dict:
         "status": status,
         "gap": max(gap, 0),
     }
-
-
-# Status: how the recorded level compares with the requirement.
-# Orange = gap (the bar shows how large), green = met, gray = no evidence.
-STATUS_BADGES = {
-    "gap": ("Gap", "#FFEDD5", "#9A3412"),
-    "meets": ("Meets requirement", "#DCFCE7", "#166534"),
-    "not_recorded": ("Not recorded", "#F3F4F6", "#4B5563"),
-}
-
-# Importance: one blue scale with a clearly different shade per level,
-# darker = more important to the role.
-# Kept separate from the status colors so the two are not confused.
-IMPORTANCE_BADGES = {
-    5: ("#172554", "#FFFFFF"),
-    4: ("#1D4ED8", "#FFFFFF"),
-    3: ("#60A5FA", "#0B1F4D"),
-    2: ("#BFDBFE", "#1E3A8A"),
-    1: ("#F1F5F9", "#475569"),
-}
-
-
-def _badge_html(text: str, background: str, color: str) -> str:
-    return (
-        f'<span style="display:inline-block;padding:2px 10px;'
-        f"border-radius:999px;font-size:0.8rem;font-weight:600;"
-        f'background:{background};color:{color};white-space:nowrap;">'
-        f"{text}</span>"
-    )
-
-
-def _status_badge_html(status: str) -> str:
-    label, background, color = STATUS_BADGES[status]
-    return _badge_html(label, background, color)
-
-
-def _importance_badge_html(importance: int) -> str:
-    background, color = IMPORTANCE_BADGES.get(
-        importance, IMPORTANCE_BADGES[1]
-    )
-    return _badge_html(f"Importance {importance}/5", background, color)
-
-
-def _level_bar_html(current_level, required_level: int) -> str:
-    """
-    Same bar as the employee view: filled = current level,
-    dark marker = required level. A skill that is not recorded
-    shows an empty bar.
-    """
-    current_pct = (current_level or 0) * 20
-    required_pct = required_level * 20
-    return (
-        '<div style="position:relative;height:10px;background:#E5E7EB;'
-        'border-radius:999px;margin:8px 0 6px 0;">'
-        f'<div style="width:{current_pct}%;height:100%;background:#6B8EAD;'
-        'border-radius:999px;"></div>'
-        f'<div style="position:absolute;left:calc({required_pct}% - 2px);'
-        "top:-3px;width:4px;height:16px;background:#374151;"
-        'border-radius:2px;"></div></div>'
-    )
 
 
 def render_candidate_card(candidate, role_id: int):
