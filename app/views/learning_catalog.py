@@ -4,10 +4,15 @@ import pandas as pd
 import streamlit as st
 
 from i18n import t, tn
+from i18n_data import localized
 from db import (
     get_internal_training_outcomes,
     get_training_prerequisites_catalog,
 )
+
+# In Chinese (?lang=zh), role / skill / course names come back translated.
+get_internal_training_outcomes = localized(get_internal_training_outcomes)
+get_training_prerequisites_catalog = localized(get_training_prerequisites_catalog)
 
 
 # =========================================================
@@ -22,6 +27,10 @@ def tokenize(text):
         r"[a-z0-9+#./-]+",
         str(text).lower(),
     )
+
+
+def has_cjk(text):
+    return re.search(r"[\u3400-\u9fff]", str(text)) is not None
 
 
 def row_matches_search(
@@ -43,28 +52,31 @@ def row_matches_search(
     if not search_term:
         return True
 
+    # In Chinese the *_en columns hold the English originals,
+    # so both languages can be searched.
     searchable_text = " ".join(
-        [
-            str(
-                row.get(
-                    "training_name",
-                    "",
-                )
-            ),
-            str(
-                row.get(
-                    "skill_name",
-                    "",
-                )
-            ),
-            str(
-                row.get(
-                    "training_description",
-                    "",
-                )
-            ),
-        ]
+        str(
+            row.get(
+                column,
+                "",
+            )
+        )
+        for column in (
+            "training_name",
+            "skill_name",
+            "training_description",
+            "training_name_en",
+            "skill_name_en",
+            "training_description_en",
+        )
     ).lower()
+
+    # Chinese has no spaces between words: match it as plain text.
+    if has_cjk(search_term):
+        return all(
+            part in searchable_text
+            for part in search_term.split()
+        )
 
     search_tokens = tokenize(
         search_term
@@ -142,9 +154,10 @@ def format_course_skills(
     )
 
     return [
-        (
-            f"{row.skill_name} "
-            f"(L{int(row.course_skill_level)})"
+        t(
+            "skill_with_level",
+            skill=row.skill_name,
+            level=int(row.course_skill_level),
         )
         for row in skills.itertuples()
     ]

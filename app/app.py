@@ -1,11 +1,13 @@
 import streamlit as st
 
 from i18n import render_language_switch, t, tn
+from i18n_data import localized
 from db import (
     get_employee_list,
     get_manager_list,
     reset_demo_database,
 )
+
 
 from views.my_skills import (
     render_my_skills,
@@ -26,6 +28,9 @@ from views.manager_staffing import (
 from views.hr_workforce_planning import (
     render_hr_workforce_planning,
 )
+
+# In Chinese (?lang=zh), role / skill / course names come back translated.
+get_employee_list = localized(get_employee_list)
 
 
 st.set_page_config(

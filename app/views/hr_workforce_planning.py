@@ -1,17 +1,23 @@
 import pandas as pd
 import streamlit as st
 
-from i18n import t
+from i18n import is_zh, t
 from planning import (
     build_unaddressed_capability_gaps,
     build_workforce_plan,
 )
+from i18n_data import localized
 from db import (
     get_planning_periods,
     get_workforce_demand,
     get_internal_training_outcomes,
     get_all_role_skill_requirements,
 )
+
+# In Chinese (?lang=zh), role / skill / course names come back translated.
+get_workforce_demand = localized(get_workforce_demand)
+get_internal_training_outcomes = localized(get_internal_training_outcomes)
+get_all_role_skill_requirements = localized(get_all_role_skill_requirements)
 
 
 # =========================================================
@@ -374,6 +380,17 @@ def render_hr_workforce_planning():
             )
             .str.replace("\n", "<br>", regex=False)
         )
+
+        if is_zh():
+            # planning.py formats lists in English; adjust punctuation only.
+            display_table["Affected Roles"] = (
+                display_table["Affected Roles"]
+                .str.replace(", ", t("list_sep"), regex=False)
+            )
+            display_table["Available Internal Training"] = (
+                display_table["Available Internal Training"]
+                .str.replace(r" \(L(\d)\)", r"（L\1）", regex=True)
+            )
 
         display_table = display_table.rename(
             columns={

@@ -19,6 +19,7 @@ import streamlit.components.v1 as components
 
 from i18n import department, level_label, t, tn
 from views.skill_display import level_bar_html, skill_badges_html
+from i18n_data import localized
 from db import (
     get_employee_profile,
     get_recommended_careers,
@@ -31,6 +32,14 @@ from db import (
     get_saved_careers,
     update_career_visibility,
 )
+
+# In Chinese (?lang=zh), role / skill / course names come back translated.
+get_employee_profile = localized(get_employee_profile)
+get_recommended_careers = localized(get_recommended_careers)
+get_target_role_skill_details = localized(get_target_role_skill_details)
+get_recommended_learning = localized(get_recommended_learning)
+get_internal_training_outcomes = localized(get_internal_training_outcomes)
+get_saved_careers = localized(get_saved_careers)
 
 
 # =========================================================
@@ -549,7 +558,7 @@ def _render_recommended_option(option: dict, required_level: int):
 
     if option["also_builds"]:
         st.caption(
-            t("also_develops", skills=", ".join(option["also_builds"]))
+            t("also_develops", skills=t("list_sep").join(option["also_builds"]))
         )
 
     if option["status_code"] == "locked":

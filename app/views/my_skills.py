@@ -1,7 +1,13 @@
+import pandas as pd
 import streamlit as st
 
+from i18n_data import localized
 from db import get_employee_profile, get_employee_skills
 from i18n import department, level_label, skill_category, t
+
+# In Chinese (?lang=zh), role / skill / course names come back translated.
+get_employee_profile = localized(get_employee_profile)
+get_employee_skills = localized(get_employee_skills)
 
 
 def render_skill_card(row):
@@ -93,13 +99,21 @@ def render_my_skills():
     ).strip()
 
     if search_term:
-        filtered = filtered[
-            filtered["skill_name"].str.contains(
+        # In Chinese, also match the English skill name.
+        search_columns = [
+            column
+            for column in ("skill_name", "skill_name_en")
+            if column in filtered.columns
+        ]
+        matches = pd.Series(False, index=filtered.index)
+        for column in search_columns:
+            matches |= filtered[column].str.contains(
                 search_term,
                 case=False,
                 na=False,
+                regex=False,
             )
-        ]
+        filtered = filtered[matches]
 
     st.caption(
         t("showing_skills", shown=len(filtered), total=len(skills))
