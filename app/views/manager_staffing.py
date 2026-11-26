@@ -11,12 +11,19 @@ from readiness import (
 )
 from i18n import department, level_label, readiness_text, route_text, t, tn
 from views.skill_display import level_bar_html, skill_badges_html
+from i18n_data import localized
 from db import (
     get_manager_openings,
     get_visible_internal_candidates,
     get_opening_detail,
     get_target_role_skill_details,
 )
+
+# In Chinese (?lang=zh), role / skill / course names come back translated.
+get_manager_openings = localized(get_manager_openings)
+get_visible_internal_candidates = localized(get_visible_internal_candidates)
+get_opening_detail = localized(get_opening_detail)
+get_target_role_skill_details = localized(get_target_role_skill_details)
 
 
 DEPARTMENT_COLORS = {

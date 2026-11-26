@@ -89,7 +89,7 @@ Each of these comes from a risk I wanted the system to avoid:
 
 Each visitor works on a private copy of the database, so your changes do not affect anyone else. **Demo controls → Reset demo data** restores the starting state.
 
-The interface is also available in Traditional Chinese: add `?lang=zh` to the URL ([Chinese demo](https://workforceiq-demo.streamlit.app/?lang=zh)) or use the language switch at the top of the sidebar. English is always the default. Demo data such as names of people, roles, skills and courses stays in English.
+The interface is also available in Traditional Chinese: add `?lang=zh` to the URL ([Chinese demo](https://workforceiq-demo.streamlit.app/?lang=zh)) or use the language switch at the top of the sidebar. English is always the default. In Chinese, roles, skills, courses and course descriptions are translated too (roles show both languages); people's names and tool names such as SQL or Power BI stay in English. The database itself is unchanged.
 
 ## Limitations
 

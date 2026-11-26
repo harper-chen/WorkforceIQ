@@ -6,9 +6,10 @@ English is always the default. Chinese is shown only when the URL has
 The choice is never stored anywhere else, so a link without ?lang=zh
 always opens in English.
 
-Demo data (people, role, skill and course names) stays in English, the way
-most Taiwanese tech companies name them. Interface text, rule labels,
-department names and skill categories are translated.
+Interface text, rule labels, department names and skill categories are
+translated here. Role, skill and course names and course descriptions are
+translated in i18n_data.py; people's names and tool names (SQL, Power BI,
+Jira ...) stay in English.
 """
 
 import streamlit as st
@@ -360,6 +361,8 @@ TEXT = {
         "fit_partial": "partial: L{level} of L{required} needed",
         "option_line": "{tag} — **{course}** · {weeks} wks · reaches L{level} · {fit}",
         "also_develops": "This course also develops: {skills}",
+        "list_sep": ", ",
+        "skill_with_level": "{skill} (L{level})",
         "prereq_not_recorded": "not recorded",
         "prereq_before": "Before enrolling: **{skill}** {current} → L{minimum}.",
         "prereq_available": "available now",
@@ -568,8 +571,8 @@ someone qualifies, the app does not judge either.
         "ws_hr": "HR／人力規劃",
         "suggested_demo": "建議的操作路徑",
         "suggested_demo_body": (
-            "員工：River Hsu → 職涯探索 → Systems Analyst<br>"
-            "用人主管：Riley Chang → Systems Analyst 職缺"
+            "員工：River Hsu → 職涯探索 → 系統分析師<br>"
+            "用人主管：Riley Chang → 系統分析師職缺"
         ),
         "preview_as_employee": "切換員工身分",
         "employee_pages": "員工功能",
@@ -610,7 +613,7 @@ someone qualifies, the app does not judge either.
         "no_skills": "這位員工目前沒有任何技能紀錄。",
         "filter_category": "依技能類別篩選",
         "search_skills": "搜尋技能",
-        "search_skills_ph": "例如：SQL、Power BI、Workday",
+        "search_skills_ph": "例如：SQL、Power BI、資料分析",
         "showing_skills": "顯示 {shown} 項技能（共 {total} 項）",
         "last_updated": "最後更新：{date}",
 
@@ -630,7 +633,7 @@ someone qualifies, the app does not judge either.
         "all_caption": "探索公司內的任何職位。技能符合度僅供參考，不會限制你的選擇。",
         "current_role_excluded": "你目前的職位是 {role}，因此不會出現在職涯探索中。",
         "search_role": "依職位名稱搜尋",
-        "search_role_ph": "例如：Analyst、Product、Security",
+        "search_role_ph": "例如：分析師、產品、Security",
         "select_all_depts": "全選部門",
         "clear_depts": "清除部門",
         "role_level_heading": "職級",
@@ -710,6 +713,8 @@ someone qualifies, the app does not judge either.
         "fit_partial": "部分補足（要求 L{required}）",
         "option_line": "{tag} — **{course}** · {weeks} 週 · 可達 L{level} · {fit}",
         "also_develops": "這門課也能培養：{skills}",
+        "list_sep": "、",
+        "skill_with_level": "{skill}（L{level}）",
         "prereq_not_recorded": "未記錄",
         "prereq_before": "報名前需具備：**{skill}** {current} → L{minimum}。",
         "prereq_available": "可直接報名",
@@ -725,7 +730,7 @@ someone qualifies, the app does not judge either.
         "learning_intro": "瀏覽公司的內部培訓課程，查看每門課能培養的技能、預期達到的等級、所需時間與先修條件。",
         "no_programs": "目前沒有可用的內部培訓課程。",
         "search_courses": "搜尋課程",
-        "search_courses_ph": "可搜尋課程名稱、技能或課程說明",
+        "search_courses_ph": "可用中文或英文搜尋課程名稱、技能或說明",
         "filter_skill": "依技能篩選",
         "all_skills": "所有技能",
         "no_courses_match": "沒有符合搜尋與篩選條件的課程。",
