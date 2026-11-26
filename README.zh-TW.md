@@ -6,7 +6,7 @@
 
 一個人力決策輔助系統，把員工的技能、職涯意向與培訓，和職缺及未來人力規劃連結起來，讓組織在對外招募之前，先從內部培養人才，同時不把決定權從人的手中拿走。
 
-**[試用線上 Demo →](https://workforceiq-demo.streamlit.app/)** 不需要註冊。先從 River Hsu（員工）開始，再看 Riley Chang（主管）；詳見[試用 Demo](#試用-demo)。
+**[試用線上 Demo →](https://workforceiq-demo.streamlit.app/?lang=zh)** 不需要註冊。先從 River Hsu（員工）開始，再看 Riley Chang（主管）；詳見[試用 Demo](#試用-demo)。
 
 <p align="center">
   <a href="https://workforceiq-demo.streamlit.app/"><img src="docs/images/manager-staffing-decision.png" alt="WorkforceIQ manager staffing decision view" width="900"></a>
@@ -82,12 +82,14 @@ Demo 用同一個故事串起三個工作區。
 
 ## 試用 Demo
 
-1. 打開**[線上 Demo](https://workforceiq-demo.streamlit.app/)**，選擇 **Employee** 工作區和 **River Hsu**，在 **My Skills** 檢視他的技能。
-2. 打開 **Career Exploration**，選擇 **Systems Analyst**，查看符合程度、差距和建議課程。
-3. 切換到 **Manager** 工作區，選擇 **Riley Chang**，檢視開放中的 Systems Analyst 職缺和 River 的準備度。
-4. 切換到 **HR / Workforce Planning**，修改幾個規劃人數，並查看能力差距。
+1. 打開**[中文版線上 Demo](https://workforceiq-demo.streamlit.app/?lang=zh)**，選擇**員工**工作區和 **River Hsu**，在**我的技能**檢視他的技能。
+2. 打開**職涯探索**，選擇 **Systems Analyst**，查看技能符合度、落差和推薦課程。
+3. 切換到**用人主管**工作區，選擇 **Riley Chang**，檢視開放中的 Systems Analyst 職缺和 River 的準備度。
+4. 切換到 **HR／人力規劃**，修改幾個規劃人數，並查看內部培訓無法補足的能力缺口。
 
-每位訪客都使用自己的資料庫副本，所以你的變更不會影響其他人。**Demo controls → Reset demo data** 可以還原到初始狀態。
+每位訪客都使用自己的資料庫副本，所以你的變更不會影響其他人。**示範資料設定 → 重設示範資料**可以還原到初始狀態。
+
+介面支援繁體中文：在網址後面加上 `?lang=zh`，或使用側邊欄最上方的語言切換。沒有加 `?lang=zh` 的連結一律預設為英文。人名、職位、技能與課程名稱等示範資料維持英文，與台灣多數科技公司的用法一致。
 
 ## 限制
 

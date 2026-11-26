@@ -3,6 +3,7 @@ import re
 import pandas as pd
 import streamlit as st
 
+from i18n import t, tn
 from db import (
     get_internal_training_outcomes,
     get_training_prerequisites_catalog,
@@ -173,14 +174,14 @@ def render_course_detail(
 
     with meta_col1:
         st.metric(
-            "Estimated duration",
+            t("estimated_duration"),
             (
-                "Not specified"
+                t("not_specified")
                 if pd.isna(
                     estimated_weeks
                 )
                 else (
-                    f"{int(estimated_weeks)} weeks"
+                    tn("weeks", int(estimated_weeks))
                 )
             ),
         )
@@ -202,11 +203,11 @@ def render_course_detail(
             )
         else:
             st.caption(
-                "No course description is available."
+                t("no_description")
             )
 
     st.markdown(
-        "**Skills developed**"
+        t("skills_developed")
     )
 
     skills_table = (
@@ -251,13 +252,18 @@ def render_course_detail(
     )
 
     st.dataframe(
-        skills_table,
+        skills_table.rename(
+            columns={
+                "Skill": t("col_skill"),
+                "Outcome Level": t("col_outcome_level"),
+            }
+        ),
         hide_index=True,
         use_container_width=True,
     )
 
     st.markdown(
-        "**Prerequisites**"
+        t("prerequisites")
     )
 
     course_prereqs = (
@@ -271,7 +277,7 @@ def render_course_detail(
 
     if course_prereqs.empty:
         st.caption(
-            "No formal prerequisites."
+            t("no_prereqs")
         )
     else:
         prereq_table = (
@@ -308,7 +314,12 @@ def render_course_detail(
         )
 
         st.dataframe(
-            prereq_table,
+            prereq_table.rename(
+                columns={
+                    "Prerequisite Skill": t("col_prereq_skill"),
+                    "Minimum Level": t("col_min_level"),
+                }
+            ),
             hide_index=True,
             use_container_width=True,
         )
@@ -320,13 +331,11 @@ def render_course_detail(
 
 def render_learning_catalog():
     st.header(
-        "Learning Catalog"
+        t("page_learning")
     )
 
     st.write(
-        "Browse the company's internal learning programs, "
-        "the skills they develop, expected outcome levels, "
-        "estimated duration, and formal prerequisites."
+        t("learning_intro")
     )
 
     catalog = (
@@ -339,7 +348,7 @@ def render_learning_catalog():
 
     if catalog.empty:
         st.info(
-            "No internal learning programs are currently available."
+            t("no_programs")
         )
         return
 
@@ -353,9 +362,9 @@ def render_learning_catalog():
 
     with search_col:
         search_term = st.text_input(
-            "Search courses",
+            t("search_courses"),
             placeholder=(
-                "Search by course name, skill, or description"
+                t("search_courses_ph")
             ),
         ).strip()
 
@@ -369,12 +378,16 @@ def render_learning_catalog():
     )
 
     with skill_col:
+        # None means "all skills"; only the label is translated.
         selected_skill = st.selectbox(
-            "Filter by skill",
+            t("filter_skill"),
             [
-                "All skills"
+                None
             ]
             + skill_options,
+            format_func=lambda value: (
+                t("all_skills") if value is None else value
+            ),
         )
 
     filtered = (
@@ -406,7 +419,7 @@ def render_learning_catalog():
 
     if (
         selected_skill
-        != "All skills"
+        is not None
     ):
         matching_training_ids = set(
             filtered.loc[
@@ -427,7 +440,7 @@ def render_learning_catalog():
 
     if filtered.empty:
         st.info(
-            "No courses match the current search and filter."
+            t("no_courses_match")
         )
         return
 
@@ -442,8 +455,7 @@ def render_learning_catalog():
     course_count = len(course_ids)
 
     st.caption(
-        f"{course_count} "
-        f"{'course' if course_count == 1 else 'courses'} shown."
+        tn("courses_shown", course_count)
     )
 
     # -----------------------------------------------------
@@ -479,12 +491,12 @@ def render_learning_catalog():
         )
 
         duration_text = (
-            "Duration not specified"
+            t("duration_unspecified")
             if pd.isna(
                 estimated_weeks
             )
             else (
-                f"{int(estimated_weeks)} weeks"
+                tn("weeks", int(estimated_weeks))
             )
         )
 
@@ -503,7 +515,7 @@ def render_learning_catalog():
             # instead of forcing all skills into the row.
             if skill_labels:
                 st.caption(
-                    "Skills: "
+                    t("skills_prefix")
                     + " · ".join(
                         skill_labels
                     )

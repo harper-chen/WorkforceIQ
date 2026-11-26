@@ -1,5 +1,6 @@
 import streamlit as st
 
+from i18n import render_language_switch, t, tn
 from db import (
     get_employee_list,
     get_manager_list,
@@ -34,19 +35,19 @@ st.set_page_config(
 )
 
 
+# English by default; ?lang=zh in the URL switches to Traditional Chinese.
+render_language_switch()
+
 st.title(
     "WorkforceIQ"
 )
 
 st.caption(
-    "Skills Intelligence, Career Mobility & "
-    "Strategic Workforce Planning"
+    t("app_caption")
 )
 
 st.info(
-    "**Synthetic demo data.** Every employee, role, skill, and number "
-    "in this prototype is fictional and was generated for demonstration. "
-    "Nothing here describes a real person or organization.",
+    t("synthetic_notice"),
     icon="🧪",
 )
 
@@ -60,30 +61,34 @@ DEMO_MANAGER_NAME = "Riley Chang"
 # =========================================================
 
 st.sidebar.markdown(
-    """
+    f"""
 <div style="
     font-size: 1.15rem;
     font-weight: 700;
     margin-bottom: 0.35rem;
 ">
-    Workspace
+    {t("workspace")}
 </div>
 """,
     unsafe_allow_html=True,
 )
 
+WORKSPACE_LABELS = {
+    "Employee": "ws_employee",
+    "Manager": "ws_manager",
+    "HR / Workforce Planning": "ws_hr",
+}
+
 workspace = st.sidebar.radio(
-    "Workspace",
-    [
-        "Employee",
-        "Manager",
-        "HR / Workforce Planning",
-    ],
+    t("workspace"),
+    list(WORKSPACE_LABELS),
+    format_func=lambda value: t(WORKSPACE_LABELS[value]),
     label_visibility="collapsed",
+    key="workspace",
 )
 
 st.sidebar.markdown(
-    """
+    f"""
 <div style="
     margin-top: 1rem;
     margin-bottom: 0.25rem;
@@ -91,7 +96,7 @@ st.sidebar.markdown(
     font-weight: 600;
     color: #8B95A7;
 ">
-    Suggested demo
+    {t("suggested_demo")}
 </div>
 
 <div style="
@@ -99,8 +104,7 @@ st.sidebar.markdown(
     line-height: 1.55;
     color: #9AA3B2;
 ">
-    Employee: River Hsu → Career Exploration → Systems Analyst<br>
-    Manager: Riley Chang → Systems Analyst opening
+    {t("suggested_demo_body")}
 </div>
 """,
     unsafe_allow_html=True,
@@ -160,7 +164,7 @@ if workspace == "Employee":
 
     selected_employee_label = (
         st.sidebar.selectbox(
-            "Preview as employee",
+            t("preview_as_employee"),
             options=employee_labels,
             index=employee_labels.index(
                 current_employee_label
@@ -181,13 +185,16 @@ if workspace == "Employee":
     if "employee_page" not in st.session_state:
         st.session_state["employee_page"] = "My Skills"
 
+    EMPLOYEE_PAGE_LABELS = {
+        "My Skills": "page_my_skills",
+        "Career Exploration": "page_career",
+        "Learning Catalog": "page_learning",
+    }
+
     page = st.sidebar.radio(
-        "Employee",
-        [
-            "My Skills",
-            "Career Exploration",
-            "Learning Catalog",
-        ],
+        t("employee_pages"),
+        list(EMPLOYEE_PAGE_LABELS),
+        format_func=lambda value: t(EMPLOYEE_PAGE_LABELS[value]),
         key="employee_page",
     )
 
@@ -213,8 +220,7 @@ elif workspace == "Manager":
 
     if managers.empty:
         st.warning(
-            "No hiring managers are currently "
-            "linked to job openings."
+            t("no_managers")
         )
 
     else:
@@ -222,15 +228,11 @@ elif workspace == "Manager":
 
         for row in managers.itertuples():
             open_count = int(row.open_requisition_count)
-            requisition_word = (
-                "requisition"
-                if open_count == 1
-                else "requisitions"
-            )
 
-            label = (
-                f"{row.manager_name} — "
-                f"{open_count} open {requisition_word}"
+            label = tn(
+                "manager_option",
+                open_count,
+                name=row.manager_name,
             )
             manager_options[label] = row.manager_id
 
@@ -269,7 +271,7 @@ elif workspace == "Manager":
 
         selected_manager_label = (
             st.sidebar.selectbox(
-                "Preview as manager",
+                t("preview_as_manager"),
                 options=manager_labels,
                 index=manager_labels.index(
                     current_manager_label
@@ -317,19 +319,16 @@ def _reset_demo():
     st.session_state["demo_reset_notice"] = True
 
 
-with st.sidebar.expander("Demo controls"):
+with st.sidebar.expander(t("demo_controls")):
     st.caption(
-        "You are working on your own private copy of the demo data, "
-        "so changes you make are not shared with other visitors and "
-        "are temporary. Reset restores the seeded career interests "
-        "and visibility settings in your copy only."
+        t("demo_controls_body")
     )
     st.button(
-        "Reset demo data",
+        t("reset_demo"),
         on_click=_reset_demo,
         use_container_width=True,
     )
 
 if st.session_state.pop("demo_reset_notice", False):
-    st.sidebar.success("Demo data restored.")
+    st.sidebar.success(t("demo_restored"))
 

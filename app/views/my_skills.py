@@ -1,15 +1,7 @@
 import streamlit as st
 
 from db import get_employee_profile, get_employee_skills
-
-
-LEVEL_LABELS = {
-    1: "Foundational",
-    2: "Basic",
-    3: "Working",
-    4: "Advanced",
-    5: "Expert",
-}
+from i18n import department, level_label, skill_category, t
 
 
 def render_skill_card(row):
@@ -20,24 +12,23 @@ def render_skill_card(row):
 
         with left:
             st.markdown(f"**{row['skill_name']}**")
-            st.caption(row["skill_category"])
+            st.caption(skill_category(row["skill_category"]))
 
         with right:
             st.markdown(f"**{level}/5**")
-            st.caption(LEVEL_LABELS[level])
+            st.caption(level_label(level))
 
         st.progress(level / 5)
 
         if row["last_updated"]:
-            st.caption(f"Last updated: {row['last_updated']}")
+            st.caption(t("last_updated", date=row["last_updated"]))
 
 
 def render_my_skills():
-    st.header("My Skills")
+    st.header(t("page_my_skills"))
 
     st.write(
-        "Review the skills currently recorded in your WorkforceIQ profile "
-        "and the proficiency level associated with each one."
+        t("my_skills_intro")
     )
 
     # The selected employee is controlled by app.py
@@ -48,7 +39,7 @@ def render_my_skills():
     skills = get_employee_skills(employee_id)
 
     if profile.empty:
-        st.error("Employee profile not found.")
+        st.error(t("employee_not_found"))
         return
 
     p = profile.iloc[0]
@@ -58,24 +49,24 @@ def render_my_skills():
     c1, c2, c3 = st.columns([1.3, 1.8, 0.9])
 
     c1.metric(
-        "Current role",
+        t("current_role"),
         p["current_role"],
     )
 
     c2.metric(
-        "Department",
-        p["department_name"],
+        t("department"),
+        department(p["department_name"]),
     )
 
     c3.metric(
-        "Recorded skills",
+        t("recorded_skills"),
         len(skills),
     )
 
     st.divider()
 
     if skills.empty:
-        st.info("No skills are currently recorded for this employee.")
+        st.info(t("no_skills"))
         return
 
     categories = sorted(
@@ -86,9 +77,10 @@ def render_my_skills():
     )
 
     selected_categories = st.multiselect(
-        "Filter by skill category",
+        t("filter_category"),
         categories,
         default=categories,
+        format_func=skill_category,
     )
 
     filtered = skills[
@@ -96,8 +88,8 @@ def render_my_skills():
     ].copy()
 
     search_term = st.text_input(
-        "Search skills",
-        placeholder="e.g. SQL, Power BI, Workday",
+        t("search_skills"),
+        placeholder=t("search_skills_ph"),
     ).strip()
 
     if search_term:
@@ -110,7 +102,7 @@ def render_my_skills():
         ]
 
     st.caption(
-        f"Showing {len(filtered)} of {len(skills)} recorded skills"
+        t("showing_skills", shown=len(filtered), total=len(skills))
     )
 
     for category in selected_categories:
@@ -121,7 +113,7 @@ def render_my_skills():
         if category_rows.empty:
             continue
 
-        st.subheader(category)
+        st.subheader(skill_category(category))
 
         cols = st.columns(2)
 

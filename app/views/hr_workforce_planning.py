@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 
+from i18n import t
 from planning import (
     build_unaddressed_capability_gaps,
     build_workforce_plan,
@@ -90,30 +91,27 @@ def reset_planned_headcount_to_baseline(
 
 def render_hr_workforce_planning():
     st.header(
-        "HR / Workforce Planning"
+        t("hr_title")
     )
 
     st.write(
-        "Plan future headcount, identify workforce gaps, "
-        "and surface capability needs that current internal "
-        "learning cannot fully support."
+        t("hr_intro")
     )
 
     st.info(
-        "This workspace focuses on aggregate workforce-planning "
-        "needs rather than individual employee staffing decisions."
+        t("hr_info")
     )
 
     periods = get_planning_periods()
 
     if periods.empty:
         st.warning(
-            "No future workforce-demand data is available."
+            t("no_demand")
         )
         return
 
     selected_period = st.selectbox(
-        "Planning Period",
+        t("planning_period"),
         periods[
             "planning_period"
         ].tolist(),
@@ -125,8 +123,7 @@ def render_hr_workforce_planning():
 
     if demand.empty:
         st.warning(
-            "No workforce-demand data is available "
-            "for the selected planning period."
+            t("no_demand_period")
         )
         return
 
@@ -150,13 +147,11 @@ def render_hr_workforce_planning():
     # =====================================================
 
     st.subheader(
-        "1. Workforce Demand & Gaps"
+        t("demand_heading")
     )
 
     st.caption(
-        "Planned HC is the future target headcount for each role. "
-        "Edit it to test a different workforce scenario. "
-        "Workforce Gap is recalculated from Planned HC minus Current HC."
+        t("demand_caption")
     )
 
     control_col1, control_col2 = st.columns(
@@ -165,7 +160,7 @@ def render_hr_workforce_planning():
 
     with control_col1:
         if st.button(
-            "Reset planned headcount to baseline",
+            t("reset_baseline"),
             key=(
                 "reset_"
                 + state_key
@@ -188,7 +183,7 @@ def render_hr_workforce_planning():
 
     with control_col2:
         show_no_gap_roles = st.checkbox(
-            "Show roles with no gap",
+            t("show_no_gap"),
             value=False,
             key=(
                 "show_no_gap_"
@@ -217,8 +212,7 @@ def render_hr_workforce_planning():
 
     if table_source.empty:
         st.success(
-            "No positive workforce gaps are currently "
-            "identified under this scenario."
+            t("no_positive_gaps")
         )
     else:
         editor_input = table_source[
@@ -278,29 +272,29 @@ def render_hr_workforce_planning():
                 "role_id": None,
                 "Role":
                     st.column_config.TextColumn(
-                        "Role",
+                        t("col_role"),
                         width="large",
                     ),
                 "Current HC":
                     st.column_config.NumberColumn(
-                        "Current HC",
+                        t("col_current_hc"),
                         width="small",
                         format="%d",
                     ),
                 "Planned HC":
                     st.column_config.NumberColumn(
-                        "Planned HC ✎",
+                        t("col_planned_hc"),
                         min_value=0,
                         step=1,
                         format="%d",
                         width="small",
                         help=(
-                            "Editable future target headcount."
+                            t("col_planned_hc_help")
                         ),
                     ),
                 "Workforce Gap":
                     st.column_config.NumberColumn(
-                        "Workforce Gap",
+                        t("col_workforce_gap"),
                         width="small",
                         format="%d",
                     ),
@@ -347,14 +341,11 @@ def render_hr_workforce_planning():
     st.divider()
 
     st.subheader(
-        "2. Unaddressed Capability Gaps"
+        t("capability_heading")
     )
 
     st.caption(
-        "The skill requirements of every existing role are evaluated "
-        "here, independent of the headcount scenario above. A skill "
-        "appears only when the current internal learning catalog "
-        "cannot reach the required proficiency level."
+        t("capability_caption")
     )
 
     unaddressed = (
@@ -366,20 +357,31 @@ def render_hr_workforce_planning():
 
     if unaddressed.empty:
         st.success(
-            "Current internal learning coverage is sufficient "
-            "for the skill requirements of all existing roles."
+            t("coverage_ok")
         )
     else:
         st.warning(
-            "These role capability needs are not fully supported "
-            "by the current internal learning catalog."
+            t("coverage_warning")
         )
 
         display_table = unaddressed.copy()
 
         display_table["Available Internal Training"] = (
             display_table["Available Internal Training"]
+            .replace(
+                "No internal training available",
+                t("no_internal_training"),
+            )
             .str.replace("\n", "<br>", regex=False)
+        )
+
+        display_table = display_table.rename(
+            columns={
+                "Skill": t("col_skill"),
+                "Affected Roles": t("col_affected_roles"),
+                "Required Level": t("col_required_level"),
+                "Available Internal Training": t("col_available_training"),
+            }
         )
 
         st.markdown(
@@ -391,9 +393,5 @@ def render_hr_workforce_planning():
         )
 
         st.caption(
-            "Available Internal Training shows the strongest course "
-            "outcome currently available for each skill. Multiple "
-            "courses are shown when they reach the same highest "
-            "outcome level. This section identifies planning risks "
-            "rather than prescribing a single solution."
+            t("capability_note")
         )
