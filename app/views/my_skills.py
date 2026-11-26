@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from i18n_data import localized
+from i18n_data import localized, short_role_name
 from db import get_employee_profile, get_employee_skills
 from i18n import department, level_label, skill_category, t
 
@@ -56,7 +56,8 @@ def render_my_skills():
 
     c1.metric(
         t("current_role"),
-        p["current_role"],
+        # The full bilingual title does not fit in a metric.
+        short_role_name(p.get("current_role_en", p["current_role"])),
     )
 
     c2.metric(

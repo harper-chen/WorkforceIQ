@@ -214,6 +214,12 @@ class DemoDataTranslationTests(unittest.TestCase):
         for table in (i18n_data.ROLES_ZH, i18n_data.SKILLS_ZH, i18n_data.COURSES_ZH):
             self.assertEqual(len(set(table.values())), len(table))
 
+    def test_short_role_name_for_narrow_places(self):
+        with use_lang(None):
+            self.assertEqual(i18n_data.short_role_name("Systems Analyst"), "Systems Analyst")
+        with use_lang("zh"):
+            self.assertEqual(i18n_data.short_role_name("Systems Analyst"), "系統分析師")
+
     def test_english_results_are_untouched(self):
         frame = pd.DataFrame({"role_name": ["Systems Analyst"], "skill_name": ["Negotiation"]})
         with use_lang(None):
