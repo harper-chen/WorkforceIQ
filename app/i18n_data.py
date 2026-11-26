@@ -290,6 +290,13 @@ def role_name(name):
     return f"{ROLES_ZH[name]}（{name}）"
 
 
+def short_role_name(name):
+    """Chinese title only, for narrow places (metrics, sidebar selects)."""
+    if not is_zh():
+        return name
+    return ROLES_ZH.get(name, name)
+
+
 def skill_name(name):
     if not is_zh():
         return name

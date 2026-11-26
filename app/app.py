@@ -1,7 +1,7 @@
 import streamlit as st
 
 from i18n import render_language_switch, t, tn
-from i18n_data import localized
+from i18n_data import localized, short_role_name
 from db import (
     get_employee_list,
     get_manager_list,
@@ -129,7 +129,7 @@ if workspace == "Employee":
     employee_options = {
         (
             f"{row.employee_name} — "
-            f"{row.current_role}"
+            f"{short_role_name(getattr(row, 'current_role_en', row.current_role))}"
         ): row.employee_id
         for row in employees.itertuples()
     }
