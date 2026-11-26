@@ -112,6 +112,10 @@ def get_candidate_internal_readiness(candidate):
         return {
             "code": "not_assessed",
             "label": "Not assessed",
+            # variant + numbers let the interface word this in other languages.
+            "variant": "unrecorded_could_change",
+            "match_percent": match_percent,
+            "best_case_match_percent": best_case_match,
             "explanation": (
                 "Not judged yet: the skills with no record could "
                 f"change the result. Skill Match is {match_percent:.1f}% now, "
@@ -124,6 +128,7 @@ def get_candidate_internal_readiness(candidate):
     # keep the cautious result and say what would change it.
     return {
         **recorded_result,
+        "variant": "might_be_ready_now",
         "explanation": (
             recorded_result["explanation"]
             + " Once the missing skills are recorded, "
@@ -177,6 +182,7 @@ def get_opening_staffing_route(candidates):
             "route_code": "external_hire",
             "route_label": "External Hire",
             "readiness_label": None,
+            "variant": "no_interest",
             "explanation": (
                 "No employee has shared interest in this role "
                 "with you yet."
@@ -193,6 +199,7 @@ def get_opening_staffing_route(candidates):
             "route_code": "internal_mobility",
             "route_label": "Internal Mobility",
             "readiness_label": "Ready Now",
+            "variant": "ready_now",
             "explanation": (
                 "At least one employee who shared interest "
                 "looks ready to move now."
@@ -204,6 +211,7 @@ def get_opening_staffing_route(candidates):
             "route_code": "internal_mobility",
             "route_label": "Internal Mobility",
             "readiness_label": "Train First",
+            "variant": "train_first",
             "explanation": (
                 "At least one employee who shared interest "
                 "could move after some training."
@@ -215,6 +223,7 @@ def get_opening_staffing_route(candidates):
             "route_code": "more_evidence_needed",
             "route_label": "More Evidence Needed",
             "readiness_label": None,
+            "variant": "more_evidence_needed",
             "explanation": (
                 "Before hiring from outside, record more skills for the "
                 "employees who shared interest. What is missing could "
@@ -226,6 +235,7 @@ def get_opening_staffing_route(candidates):
         "route_code": "external_hire",
         "route_label": "External Hire",
         "readiness_label": None,
+        "variant": "none_close",
         "explanation": (
             "The employees who shared interest were assessed, "
             "but none is close enough to the role yet."

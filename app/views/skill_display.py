@@ -13,8 +13,10 @@ IMPORTANCE_BADGES = {
     1: ("#F1F5F9", "#475569"),
 }
 
+from i18n import t
+
 # Gray: missing evidence, not a gap.
-NOT_RECORDED_BADGE = ("Not recorded", "#F3F4F6", "#4B5563")
+NOT_RECORDED_BADGE_COLORS = ("#F3F4F6", "#4B5563")
 
 
 def badge_html(text: str, background: str, color: str) -> str:
@@ -30,14 +32,14 @@ def importance_badge_html(importance: int) -> str:
     background, color = IMPORTANCE_BADGES.get(
         importance, IMPORTANCE_BADGES[1]
     )
-    return badge_html(f"Importance {importance}/5", background, color)
+    return badge_html(t("importance_badge", level=importance), background, color)
 
 
 def skill_badges_html(importance: int, not_recorded: bool) -> str:
     """Right-aligned badges: 'Not recorded' (if so), then importance."""
     badges = []
     if not_recorded:
-        badges.append(badge_html(*NOT_RECORDED_BADGE))
+        badges.append(badge_html(t("not_recorded"), *NOT_RECORDED_BADGE_COLORS))
     badges.append(importance_badge_html(importance))
     return (
         '<div style="text-align:right;">'

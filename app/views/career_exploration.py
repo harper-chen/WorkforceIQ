@@ -17,6 +17,7 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
+from i18n import department, level_label, t, tn
 from views.skill_display import level_bar_html, skill_badges_html
 from db import (
     get_employee_profile,
@@ -43,26 +44,26 @@ DEPARTMENT_COLORS = {
     "Business Operations": "#FCE8C3",
 }
 
-LEVEL_LABELS = {
-    1: "Foundational",
-    2: "Basic",
-    3: "Working",
-    4: "Advanced",
-    5: "Expert",
-}
-
 VISIBILITY_LABELS = {
-    "private": "Private",
-    "opening_managers": "Visible to opening managers",
+    "private": "vis_private",
+    "opening_managers": "vis_opening_managers",
 }
 
 VISIBILITY_OPTIONS = ["private", "opening_managers"]
 
-CAREER_VIEWS = [
-    "Recommended Careers",
-    "Explore All Careers",
-    "Saved Careers",
-]
+# Stored values stay in English (they are session-state keys);
+# the labels shown to the user come from i18n.
+CAREER_VIEWS = {
+    "Recommended Careers": "view_recommended",
+    "Explore All Careers": "view_all",
+    "Saved Careers": "view_saved",
+}
+
+SORT_OPTIONS = {
+    "Skill Match": "sort_match",
+    "Department": "sort_department",
+    "Role Level": "sort_level",
+}
 
 # Session-state keys
 DETAIL_ROLE_KEY = "career_detail_role_id"
@@ -126,13 +127,13 @@ def _keep_list_widget_state():
             st.session_state[key] = st.session_state[key]
 
 
-def _department_badge_html(department) -> str:
-    color = DEPARTMENT_COLORS.get(department, "#E5E7EB")
+def _department_badge_html(department_name) -> str:
+    color = DEPARTMENT_COLORS.get(department_name, "#E5E7EB")
     return (
         f'<span style="display:inline-block;background-color:{color};'
         "color:#1F2937;padding:4px 10px;border-radius:999px;"
         'font-size:0.8rem;font-weight:600;white-space:nowrap;">'
-        f"{escape(str(department))}</span>"
+        f"{escape(str(department(department_name)))}</span>"
     )
 
 
@@ -189,12 +190,14 @@ def _run_js(js: str):
 
 def _scroll_to_card(anchor: dict):
     key = json.dumps(anchor["key"])
+    button_text = json.dumps(t("view_details"))
     position = int(anchor["position"])
     _run_js(
         f"""
         var doc = window.parent.document;
         var key = {key};
         var position = {position};
+        var buttonText = {button_text};
         var tries = 0;
         function findCard() {{
             // Streamlit >= 1.39 puts the widget key on a CSS class.
@@ -203,7 +206,7 @@ def _scroll_to_card(anchor: dict):
             // Older versions: the position-th 'View details' button.
             var buttons = Array.prototype.filter.call(
                 doc.querySelectorAll("button"),
-                function (b) {{ return (b.innerText || "").trim() === "View details"; }}
+                function (b) {{ return (b.innerText || "").trim() === buttonText; }}
             );
             return buttons[position] || null;
         }}
@@ -262,27 +265,26 @@ def render_save_career_control(employee_id: int, role_id: int):
 
     if st.session_state[saved_key]:
         if st.button(
-            "Unsave Career",
+            t("unsave_career"),
             key=f"unsave_career_button_{employee_id}_{role_id}",
             **STRETCH,
         ):
             deleted = delete_career_interest(employee_id, role_id)
             clear_career_interest_session_state(employee_id, role_id)
             _flash(
-                "Career removed from your saved interests."
+                t("career_removed")
                 if deleted
-                else "This career was no longer saved."
+                else t("career_not_saved")
             )
             # Full rerun: Saved Careers and visibility must reflect the DB.
             st.rerun()
         st.caption(
-            "Saved to your career interests. "
-            "Removing it also removes its sharing visibility."
+            t("saved_note")
         )
         return
 
     if st.button(
-        "Save Career",
+        t("save_career"),
         key=f"save_career_button_{employee_id}_{role_id}",
         **STRETCH,
     ):
@@ -290,10 +292,10 @@ def render_save_career_control(employee_id: int, role_id: int):
         # Re-read from the DB so a stale session can never show a wrong state.
         st.session_state[saved_key] = is_career_saved(employee_id, role_id)
         if st.session_state[saved_key]:
-            _flash("Career saved privately.")
+            _flash(t("saved_privately"))
             st.rerun()
         else:
-            st.error("This career could not be saved.")
+            st.error(t("save_failed"))
 
 
 @st.fragment
@@ -323,10 +325,10 @@ def render_career_visibility_control(
     stored = st.session_state[stored_key]
 
     selected = st.selectbox(
-        "Visibility",
+        t("visibility"),
         options=VISIBILITY_OPTIONS,
         index=VISIBILITY_OPTIONS.index(stored),
-        format_func=lambda value: VISIBILITY_LABELS[value],
+        format_func=lambda value: t(VISIBILITY_LABELS[value]),
         key=widget_key,
         label_visibility="collapsed",
     )
@@ -335,16 +337,15 @@ def render_career_visibility_control(
     if selected != stored:
         if update_career_visibility(employee_id, role_id, selected):
             st.session_state[stored_key] = selected
-            st.success("Visibility updated.")
+            st.success(t("vis_updated"))
         else:
-            st.error("This saved career could not be updated.")
+            st.error(t("vis_failed"))
 
     if selected == "private":
-        st.caption("Only you can see this career interest.")
+        st.caption(t("vis_private_note"))
     else:
         st.caption(
-            "Managers responsible for openings for this exact "
-            "role can see this career interest."
+            t("vis_managers_note")
         )
 
 
@@ -368,20 +369,20 @@ def _skill_state(skill_row) -> dict:
             "required": required,
             "importance": importance,
             "gap": required,
-            "label": "Not recorded",
+            "label": t("not_recorded"),
         }
 
     current = int(proficiency)
     gap = required - current
 
     if gap <= 0:
-        label, status = "Meets requirement", "met"
+        label, status = t("meets_requirement"), "met"
     elif gap == 1:
-        label, status = "Small gap", "gap"
+        label, status = t("gap_small"), "gap"
     elif importance >= 4:
-        label, status = "Priority gap", "gap"
+        label, status = t("gap_priority"), "gap"
     else:
-        label, status = "Significant gap", "gap"
+        label, status = t("gap_significant"), "gap"
 
     return {
         "status": status,
@@ -489,28 +490,32 @@ def _catalog_lookup(catalog: pd.DataFrame, skill_id: int, current_level):
 def _render_prerequisites(course: dict):
     for prerequisite in course.get("prerequisite_options", []):
         current_text = (
-            "not recorded"
+            t("prereq_not_recorded")
             if prerequisite["not_recorded"] == 1
             else f"L{prerequisite['current_level']}"
         )
-        text = (
-            f"Before enrolling: **{prerequisite['skill_name']}** "
-            f"{current_text} → L{prerequisite['minimum_level']}."
+        text = t(
+            "prereq_before",
+            skill=prerequisite["skill_name"],
+            current=current_text,
+            minimum=prerequisite["minimum_level"],
         )
         options = prerequisite.get("course_options", [])
         if options:
             best = options[0]
             availability = (
-                "available now"
+                t("prereq_available")
                 if best["available_now"]
-                else "needs its own prerequisite"
+                else t("prereq_needs_own")
             )
-            text += (
-                f" Prepare with **{best['training_name']}** "
-                f"({best['estimated_weeks']} wks, {availability})."
+            text += t(
+                "prereq_prepare",
+                course=best["training_name"],
+                weeks=best["estimated_weeks"],
+                availability=availability,
             )
         else:
-            text += " No internal course provides this prerequisite."
+            text += t("prereq_none")
         st.caption(text)
 
 
@@ -518,28 +523,33 @@ def _render_recommended_option(option: dict, required_level: int):
     course = option["course"]
 
     if course.get("is_in_progress"):
-        tag = "▶ In progress"
+        tag = t("tag_in_progress")
     elif option["status_code"] == "ready":
-        tag = "✓ Ready now"
+        tag = t("tag_ready")
     else:
-        tag = "🔒 Prerequisite needed"
+        tag = t("tag_locked")
 
     level = option["course_level"]
     fit = (
-        "meets required level"
+        t("fit_meets")
         if level >= required_level
-        else f"partial: L{level} of L{required_level} needed"
+        else t("fit_partial", level=level, required=required_level)
     )
 
     st.markdown(
-        f"{tag} — **{course['training_name']}** · "
-        f"{int(course['estimated_weeks'])} wks · reaches L{level} · {fit}"
+        t(
+            "option_line",
+            tag=tag,
+            course=course["training_name"],
+            weeks=int(course["estimated_weeks"]),
+            level=level,
+            fit=fit,
+        )
     )
 
     if option["also_builds"]:
         st.caption(
-            "This course also develops: "
-            + ", ".join(option["also_builds"])
+            t("also_develops", skills=", ".join(option["also_builds"]))
         )
 
     if option["status_code"] == "locked":
@@ -555,9 +565,11 @@ def _render_unconfirmed_prerequisites(course: dict):
     """
     for prerequisite in course.get("unconfirmed_prerequisites", []):
         st.caption(
-            f"Confirm before enrolling: **{prerequisite['skill_name']}** "
-            f"is not recorded; this course expects "
-            f"L{prerequisite['minimum_level']}."
+            t(
+                "prereq_confirm",
+                skill=prerequisite["skill_name"],
+                minimum=prerequisite["minimum_level"],
+            )
         )
 
 
@@ -579,12 +591,17 @@ def _render_skill_card(skill_row, state: dict, learning_index: dict, catalog):
             )
 
         current_text = (
-            "Not recorded"
+            t("not_recorded")
             if state["current"] is None
-            else f"L{state['current']} {LEVEL_LABELS[state['current']]}"
+            else f"L{state['current']} {level_label(state['current'])}"
         )
         st.markdown(
-            f"{current_text} → needs **L{required} {LEVEL_LABELS[required]}**"
+            t(
+                "needs_level",
+                current=current_text,
+                level=required,
+                label=level_label(required),
+            )
         )
         st.markdown(
             _level_bar_html(state["current"], required),
@@ -599,7 +616,7 @@ def _render_skill_card(skill_row, state: dict, learning_index: dict, catalog):
             state["current"],
         )
 
-        st.caption("Learning options")
+        st.caption(t("learning_options"))
 
         if options:
             for option in options[:MAX_OPTIONS_PER_SKILL]:
@@ -607,33 +624,32 @@ def _render_skill_card(skill_row, state: dict, learning_index: dict, catalog):
             hidden = len(options) - MAX_OPTIONS_PER_SKILL
             if hidden > 0:
                 st.caption(
-                    f"+{hidden} more {pluralize(hidden, 'option')} "
-                    "in the Learning Catalog."
+                    tn("more_options", hidden)
                 )
         elif catalog_rows:
             # Courses exist but were not in the top recommendations.
             for row in catalog_rows:
                 st.markdown(
-                    f"ℹ️ In catalog — **{row['training_name']}** · "
-                    f"{int(row['estimated_weeks'])} wks · "
-                    f"reaches L{int(row['course_skill_level'])}"
+                    t(
+                        "in_catalog_line",
+                        course=row["training_name"],
+                        weeks=int(row["estimated_weeks"]),
+                        level=int(row["course_skill_level"]),
+                    )
                 )
             st.caption(
-                "Not among your top recommendations. "
-                "Check the Learning Catalog for prerequisites."
+                t("not_top_reco")
             )
         elif best_level is None:
-            st.caption("No internal course currently teaches this skill.")
+            st.caption(t("no_course_teaches"))
         else:
             st.caption(
-                "No internal course would raise this skill "
-                "above your current level."
+                t("no_course_raises")
             )
 
         if best_level is not None and best_level < required:
             st.caption(
-                f"Internal learning reaches at most L{best_level} "
-                f"for this skill; the role needs L{required}."
+                t("learning_max", best=best_level, required=required)
             )
 
 
@@ -647,7 +663,7 @@ def _render_skill_group(
     if not items:
         return
 
-    st.markdown(f"#### {title} ({len(items)})")
+    st.markdown(t("group_heading", title=title, count=len(items)))
     st.caption(caption)
 
     for skill_row, state in items:
@@ -657,9 +673,9 @@ def _render_skill_group(
 def render_career_detail_page(role_id: int, matches: pd.DataFrame, employee_id: int):
     row = matches[matches["role_id"].astype(int) == role_id].iloc[0]
 
-    origin = st.session_state.get("career_view", "careers")
+    origin = st.session_state.get("career_view", "Recommended Careers")
     st.button(
-        f"← Back to {origin}",
+        t("back_to", view=t(CAREER_VIEWS.get(origin, "view_recommended"))),
         key="career_detail_back",
         on_click=_back_to_list,
     )
@@ -669,9 +685,9 @@ def render_career_detail_page(role_id: int, matches: pd.DataFrame, employee_id: 
 
     with title_col:
         st.markdown(f"## {row['role_name']}")
-        level_text = f"Role Level {int(row['level'])}"
+        level_text = t("role_level", level=int(row["level"]))
         if int(row["formal_career_path"]) == 1:
-            level_text += " • ★ Formal career path"
+            level_text += " • " + t("formal_path")
         st.caption(level_text)
 
     with side_col:
@@ -689,7 +705,7 @@ def render_career_detail_page(role_id: int, matches: pd.DataFrame, employee_id: 
     skill_details = get_target_role_skill_details(employee_id, role_id)
 
     if skill_details.empty:
-        st.info("No skill requirements are currently defined for this role.")
+        st.info(t("no_role_requirements"))
         return
 
     learning = _load_learning(employee_id, role_id)
@@ -727,16 +743,14 @@ def render_career_detail_page(role_id: int, matches: pd.DataFrame, employee_id: 
     st.divider()
 
     metric_cols = st.columns(4)
-    metric_cols[0].metric("Skill Match", f"{row['match_percent']:.1f}%")
-    metric_cols[1].metric("Meets requirement", len(met))
-    metric_cols[2].metric("Gaps (recorded)", len(recorded_gaps))
-    metric_cols[3].metric("Not recorded", len(not_recorded))
+    metric_cols[0].metric(t("skill_match"), f"{row['match_percent']:.1f}%")
+    metric_cols[1].metric(t("meets_requirement"), len(met))
+    metric_cols[2].metric(t("gaps_recorded"), len(recorded_gaps))
+    metric_cols[3].metric(t("not_recorded"), len(not_recorded))
 
     if not_recorded:
         st.caption(
-            f"Skill Match counts the {len(not_recorded)} 'Not recorded' "
-            f"{pluralize(len(not_recorded), 'skill')} as 0, so it may "
-            "understate your fit."
+            tn("unrecorded_note", len(not_recorded))
         )
 
     gap_items = recorded_gaps + not_recorded
@@ -747,51 +761,54 @@ def render_career_detail_page(role_id: int, matches: pd.DataFrame, employee_id: 
             if learning_index.get(int(skill_row["skill_id"]))
         )
         st.caption(
-            f"Recommended courses: {len(learning['ready'])} ready now, "
-            f"{len(learning['locked'])} need a prerequisite first • "
-            f"{covered} of {len(gap_items)} skill "
-            f"{pluralize(len(gap_items), 'gap')} have a recommended course."
+            tn(
+                "course_summary",
+                len(gap_items),
+                ready=len(learning["ready"]),
+                locked=len(learning["locked"]),
+                covered=covered,
+            )
         )
 
     # ---- skills with their learning options ----------------------
     st.divider()
-    st.markdown("### Skills & learning options")
+    st.markdown("### " + t("skills_learning"))
     st.caption(
-        "Bar = your current level, dark marker = required level. "
-        "Courses are listed under the skill they help with."
+        t("skills_learning_caption")
     )
 
     if not gap_items:
         st.success(
-            "Your recorded skills currently meet every requirement "
-            "for this role."
+            t("all_met")
         )
 
     _render_skill_group(
-        "Recorded gaps",
-        "Skills in your profile that are below the required level.",
+        t("group_gaps"),
+        t("group_gaps_caption"),
         recorded_gaps,
         learning_index,
         catalog,
     )
 
     _render_skill_group(
-        "Not recorded yet",
-        "These skills are not in your WorkforceIQ profile yet. If you "
-        "already have them, they may only need to be added; the courses "
-        "below are optional paths if you do not.",
+        t("group_unrecorded"),
+        t("group_unrecorded_caption"),
         not_recorded,
         learning_index,
         catalog,
     )
 
     if met:
-        with st.expander(f"Skills that already meet the requirement ({len(met)})"):
+        with st.expander(t("met_expander", count=len(met))):
             for skill_row, state in met:
                 st.markdown(
-                    f"✓ **{skill_row['skill_name']}** — "
-                    f"L{state['current']} {LEVEL_LABELS[state['current']]} "
-                    f"(needs L{state['required']})"
+                    t(
+                        "met_line",
+                        skill=skill_row["skill_name"],
+                        current=state["current"],
+                        label=level_label(state["current"]),
+                        required=state["required"],
+                    )
                 )
 
 
@@ -818,23 +835,23 @@ def render_career_card(row, source: str, position: int):
             st.markdown(f"#### {row['role_name']}")
             badges = _department_badge_html(row["department_name"])
             if int(row["formal_career_path"]) == 1:
-                badges += " &nbsp;<strong>★ Formal career path</strong>"
+                badges += f" &nbsp;<strong>{escape(t('formal_path'))}</strong>"
             st.markdown(badges, unsafe_allow_html=True)
-            st.caption(f"Role Level {int(row['level'])}")
+            st.caption(t("role_level", level=int(row["level"])))
 
-        match_col.metric("Skill Match", f"{row['match_percent']:.1f}%")
-        met_col.metric("Skills met", int(row["skills_met"]))
-        develop_col.metric("To develop", int(row["skills_to_develop"]))
+        match_col.metric(t("skill_match"), f"{row['match_percent']:.1f}%")
+        met_col.metric(t("skills_met"), int(row["skills_met"]))
+        develop_col.metric(t("to_develop"), int(row["skills_to_develop"]))
         # Shown on the list, not only in the detail view: a low Skill Match
         # can come from missing records rather than real gaps.
         not_recorded_col.metric(
-            "Not recorded",
+            t("not_recorded"),
             int(row["not_recorded_skills"]),
         )
 
         with action_col:
             st.button(
-                "View details",
+                t("view_details"),
                 key=button_key,
                 on_click=_open_detail,
                 args=(role_id, employee_id, button_key, position),
@@ -843,17 +860,14 @@ def render_career_card(row, source: str, position: int):
 
 
 def render_recommended_careers(matches: pd.DataFrame):
-    st.subheader("Recommended Careers")
+    st.subheader(t("view_recommended"))
     st.caption(
-        "Company-recognized career paths, ordered by your "
-        "current skill match."
+        t("recommended_caption")
     )
 
-    with st.expander("What is a Formal Career Path?"):
+    with st.expander(t("what_is_formal")):
         st.write(
-            "Formal career paths are company-defined, recognized "
-            "internal career moves. They are guidance, not restrictions. "
-            "You can still explore any other role in the organization."
+            t("what_is_formal_body")
         )
 
     recommended = matches[matches["formal_career_path"] == 1].sort_values(
@@ -862,7 +876,7 @@ def render_recommended_careers(matches: pd.DataFrame):
     )
 
     if recommended.empty:
-        st.info("No formal career paths are currently defined for this role.")
+        st.info(t("no_formal_paths"))
         return
 
     for position, (_, row) in enumerate(recommended.iterrows()):
@@ -870,21 +884,19 @@ def render_recommended_careers(matches: pd.DataFrame):
 
 
 def render_all_careers(matches: pd.DataFrame, current_role: str):
-    st.subheader("Explore All Careers")
+    st.subheader(t("view_all"))
     st.caption(
-        "Explore any role in the organization. "
-        "Skill match is provided as guidance, not as a restriction."
+        t("all_caption")
     )
     st.info(
-        f"Current role: {current_role}. "
-        "Your current role is excluded from career exploration."
+        t("current_role_excluded", role=current_role)
     )
 
     filtered = matches.copy()
 
     search_term = st.text_input(
-        "Search by role name",
-        placeholder="e.g. Analyst, Product, Security",
+        t("search_role"),
+        placeholder=t("search_role_ph"),
         key="career_search",
     ).strip()
 
@@ -924,33 +936,34 @@ def render_all_careers(matches: pd.DataFrame, current_role: str):
             if value in level_options
         ]
 
-    st.markdown("**Department**")
+    st.markdown("**" + t("department") + "**")
     dept_all_col, dept_clear_col = st.columns(2)
     with dept_all_col:
-        if st.button("Select All Departments", key="select_all_departments"):
+        if st.button(t("select_all_depts"), key="select_all_departments"):
             st.session_state["selected_departments"] = department_options
     with dept_clear_col:
-        if st.button("Clear Departments", key="clear_departments"):
+        if st.button(t("clear_depts"), key="clear_departments"):
             st.session_state["selected_departments"] = []
 
     selected_departments = st.multiselect(
-        "Department",
+        t("department"),
         options=department_options,
+        format_func=department,
         key="selected_departments",
         label_visibility="collapsed",
     )
 
-    st.markdown("**Role Level**")
+    st.markdown("**" + t("role_level_heading") + "**")
     level_all_col, level_clear_col = st.columns(2)
     with level_all_col:
-        if st.button("Select All Levels", key="select_all_levels"):
+        if st.button(t("select_all_levels"), key="select_all_levels"):
             st.session_state["selected_levels"] = level_options
     with level_clear_col:
-        if st.button("Clear Levels", key="clear_levels"):
+        if st.button(t("clear_levels"), key="clear_levels"):
             st.session_state["selected_levels"] = []
 
     selected_levels = st.multiselect(
-        "Role Level",
+        t("role_level_heading"),
         options=level_options,
         key="selected_levels",
         label_visibility="collapsed",
@@ -960,8 +973,9 @@ def render_all_careers(matches: pd.DataFrame, current_role: str):
     filtered = filtered[filtered["level"].astype(int).isin(selected_levels)]
 
     sort_by = st.selectbox(
-        "Sort by",
-        ["Skill Match", "Department", "Role Level"],
+        t("sort_by"),
+        list(SORT_OPTIONS),
+        format_func=lambda value: t(SORT_OPTIONS[value]),
         key="career_sort",
     )
 
@@ -979,12 +993,11 @@ def render_all_careers(matches: pd.DataFrame, current_role: str):
         )
 
     st.caption(
-        f"Showing {len(filtered)} career options "
-        f"out of {len(matches)} available roles."
+        t("showing_careers", shown=len(filtered), total=len(matches))
     )
 
     if filtered.empty:
-        st.info("No roles match the selected filters.")
+        st.info(t("no_roles_match"))
         return
 
     for position, (_, row) in enumerate(filtered.iterrows()):
@@ -995,22 +1008,19 @@ def render_saved_careers():
     employee_id = st.session_state["employee_id"]
     saved_careers = get_saved_careers(employee_id)
 
-    st.subheader("Saved Careers")
+    st.subheader(t("view_saved"))
     st.caption(
-        "Career interests you have chosen to save. Saved careers are "
-        "private by default. You can choose to share a saved interest "
-        "with relevant opening managers."
+        t("saved_caption")
     )
 
     if saved_careers.empty:
         st.info(
-            "You have not saved any careers yet. "
-            "Open a role and select Save Career to add it here."
+            t("no_saved")
         )
         return
 
     count = len(saved_careers)
-    st.caption(f"{count} saved career{'' if count == 1 else 's'}.")
+    st.caption(tn("saved_count", count))
 
     for position, (_, row) in enumerate(saved_careers.iterrows()):
         role_id = int(row["role_id"])
@@ -1025,13 +1035,13 @@ def render_saved_careers():
                     _department_badge_html(row["department_name"]),
                     unsafe_allow_html=True,
                 )
-                saved_date = row["created_at"] or "Not available"
+                saved_date = row["created_at"] or t("not_available")
                 st.caption(
-                    f"Role Level {int(row['level'])} • Saved {saved_date}"
+                    t("level_saved", level=int(row["level"]), date=saved_date)
                 )
 
             with visibility_col:
-                st.caption("Visibility")
+                st.caption(t("visibility"))
                 render_career_visibility_control(
                     employee_id,
                     role_id,
@@ -1040,23 +1050,23 @@ def render_saved_careers():
 
             with action_col:
                 st.button(
-                    "View details",
+                    t("view_details"),
                     key=button_key,
                     on_click=_open_detail,
                     args=(role_id, employee_id, button_key, position),
                     **STRETCH,
                 )
                 if st.button(
-                    "Unsave",
+                    t("unsave"),
                     key=f"unsave_saved_career_{employee_id}_{role_id}",
                     **STRETCH,
                 ):
                     deleted = delete_career_interest(employee_id, role_id)
                     clear_career_interest_session_state(employee_id, role_id)
                     _flash(
-                        "Career removed from your saved interests."
+                        t("career_removed")
                         if deleted
-                        else "This career was no longer saved."
+                        else t("career_not_saved")
                     )
                     st.rerun()
 
@@ -1073,7 +1083,7 @@ def render_career_exploration():
 
     profile = get_employee_profile(employee_id)
     if profile.empty:
-        st.error("Employee profile not found.")
+        st.error(t("employee_not_found"))
         return
 
     matches = get_recommended_careers(employee_id)
@@ -1100,15 +1110,15 @@ def render_career_exploration():
 
     current_role = profile.iloc[0]["current_role"]
 
-    st.header("Career Exploration")
+    st.header(t("page_career"))
     st.write(
-        "Explore career opportunities across the organization based on "
-        "your currently recorded skills."
+        t("career_intro")
     )
 
     career_view = st.radio(
-        "Career View",
-        CAREER_VIEWS,
+        t("career_view"),
+        list(CAREER_VIEWS),
+        format_func=lambda value: t(CAREER_VIEWS[value]),
         horizontal=True,
         key="career_view",
         label_visibility="collapsed",
